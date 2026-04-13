@@ -26,14 +26,14 @@ export function TopBar() {
   }, []);
 
   return (
-    <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-between px-6 shrink-0">
+    <header className="h-[52px] bg-surface-card border-b border-border flex items-center justify-between px-6 shrink-0">
       {/* Search */}
-      <div className="flex items-center gap-2.5 bg-gray-50 border border-gray-100 rounded-lg px-3 py-1.5 w-72 hover:border-gray-200 transition-colors">
-        <Search className="h-4 w-4 text-gray-400 shrink-0" />
+      <div className="flex items-center gap-2.5 bg-surface border border-border rounded-lg px-3 py-1.5 w-72 hover:border-border-strong transition-colors">
+        <Search className="h-4 w-4 text-text-tertiary shrink-0" />
         <input
           type="text"
           placeholder="Buscar cliente, vencimiento..."
-          className="bg-transparent text-sm text-gray-600 placeholder:text-gray-400 outline-none w-full"
+          className="bg-transparent text-sm text-text-secondary placeholder:text-text-tertiary outline-none w-full"
         />
       </div>
 

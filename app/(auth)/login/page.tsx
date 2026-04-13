@@ -27,38 +27,37 @@ export default function LoginPage() {
     }
   };
 
+  const inputCls =
+    "w-full px-3 py-2.5 text-sm border border-border rounded-lg outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-all placeholder:text-text-tertiary bg-surface-card text-text-primary";
+
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-surface flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         {/* Logo */}
-        <div className="flex items-center justify-center gap-2.5 mb-8">
-          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-sm">
+        <div className="flex items-center justify-center gap-3 mb-8">
+          <div className="w-10 h-10 bg-brand-600 rounded-xl flex items-center justify-center shadow-sm">
             <span className="text-white text-sm font-bold tracking-tight">PO</span>
           </div>
           <div>
-            <p className="text-lg font-bold text-gray-900 leading-none">PyME OS</p>
-            <p className="text-xs text-gray-400 mt-0.5">Gestión contable inteligente</p>
+            <p className="text-xl font-semibold text-text-primary leading-none">PyME OS</p>
+            <p className="text-xs text-text-muted mt-0.5">Gestión contable inteligente</p>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          <h1 className="text-lg font-semibold text-gray-900 mb-1">
-            Iniciar sesión
-          </h1>
-          <p className="text-sm text-gray-400 mb-5">
-            Ingresá con tu cuenta del estudio
-          </p>
+        <div className="bg-surface-card rounded-2xl border border-border shadow-sm p-6">
+          <h1 className="text-lg font-semibold text-text-primary mb-0.5">Iniciar sesión</h1>
+          <p className="text-sm text-text-muted mb-5">Ingresá con tu cuenta del estudio</p>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-              <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
-              <span className="text-sm text-red-700">{error}</span>
+            <div className="mb-4 p-3 bg-danger-bg border border-danger-border rounded-lg flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 text-danger-text mt-0.5 shrink-0" />
+              <span className="text-sm text-danger-text">{error}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">
+              <label className="block text-xs font-medium text-text-secondary mb-1.5">
                 Email
               </label>
               <input
@@ -68,19 +67,19 @@ export default function LoginPage() {
                 placeholder="nombre@estudio.com"
                 required
                 autoFocus
-                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-50 transition-all placeholder:text-gray-300"
+                className={inputCls}
               />
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-medium text-gray-700">
+                <label className="block text-xs font-medium text-text-secondary">
                   Contraseña
                 </label>
                 <button
                   type="button"
                   onClick={() => router.push("/login/reset")}
-                  className="text-xs text-blue-600 hover:text-blue-700"
+                  className="text-xs text-info-text hover:text-brand-700"
                 >
                   ¿Olvidaste la contraseña?
                 </button>
@@ -91,23 +90,23 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-50 transition-all"
+                className={inputCls}
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+              className="w-full py-2.5 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed mt-2"
             >
               {loading ? "Ingresando..." : "Ingresar"}
             </button>
           </form>
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-5">
+        <p className="text-center text-xs text-text-tertiary mt-5">
           ¿Primera vez?{" "}
-          <a href="/register" className="text-blue-600 hover:text-blue-700 font-medium">
+          <a href="/register" className="text-info-text hover:text-brand-700 font-medium">
             Crear estudio nuevo
           </a>
         </p>
