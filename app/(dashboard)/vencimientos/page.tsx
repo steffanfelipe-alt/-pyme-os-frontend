@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { CalendarClock, Plus, Search, Check, ClipboardList } from "lucide-react";
 import { vencimientosApi, type Vencimiento } from "@/lib/api";
+import { useToast } from "@/hooks/useToast";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { LoadingTable } from "@/components/shared/LoadingTable";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -14,6 +15,7 @@ const ESTADOS = ["todos", "pendiente", "cumplido", "vencido"];
 const TIPOS = ["todos", "iva", "monotributo", "ddjj_anual", "iibb", "ganancias", "bienes_personales", "autonomos", "sueldos_cargas", "otro"];
 
 export default function VencimientosPage() {
+  const toast = useToast();
   const [vencimientos, setVencimientos] = useState<Vencimiento[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroEstado, setFiltroEstado] = useState("todos");
@@ -48,9 +50,9 @@ export default function VencimientosPage() {
     setCreandoTarea(id);
     try {
       const t = await vencimientosApi.crearTarea(id);
-      alert(`Tarea creada: "${t.titulo}" (prioridad: ${t.prioridad})`);
+      toast.success(`Tarea creada: "${t.titulo}" (prioridad: ${t.prioridad})`);
     } catch (e: any) {
-      alert(e.message ?? "Error al crear tarea");
+      toast.error(e.message ?? "Error al crear tarea");
     } finally {
       setCreandoTarea(null);
     }
@@ -226,10 +228,11 @@ export default function VencimientosPage() {
                         <button
                           onClick={() => handleCrearTarea(v.id)}
                           disabled={creandoTarea === v.id}
-                          className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                          className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-50"
                           title="Crear tarea automática"
                         >
                           <ClipboardList className="h-3 w-3" />
+                          {creandoTarea === v.id ? "..." : "Crear tarea"}
                         </button>
                         <button
                           onClick={() => handleCumplir(v.id)}

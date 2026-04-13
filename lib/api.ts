@@ -47,6 +47,11 @@ async function apiFetch<T>(
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...fetchOptions.headers,
     },
+  }).catch((err: unknown) => {
+    if (err instanceof TypeError) {
+      throw new Error("No se pudo conectar al servidor. Verificá que el backend esté corriendo.");
+    }
+    throw err;
   });
 
   if (res.status === 401) {
@@ -549,6 +554,11 @@ export const automatizacionesPythonApi = {
     apiFetch<AutomatizacionPython>(`/api/automatizaciones-python/${id}/configurar-inputs`, {
       method: "PATCH",
       body: JSON.stringify({ inputs }),
+    }),
+
+  activar: (id: number) =>
+    apiFetch<AutomatizacionPython>(`/api/automatizaciones-python/${id}/activar`, {
+      method: "PATCH",
     }),
 };
 

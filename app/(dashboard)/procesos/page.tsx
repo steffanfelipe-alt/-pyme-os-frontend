@@ -6,8 +6,10 @@ import {
   GitBranch, ChevronRight, X, Sparkles, Zap, FileText,
   Bot, Plus, Loader2, AlertCircle, CheckCircle2,
 } from "lucide-react";
-import { procesosApi, clientesApi, automatizacionesApi } from "@/lib/api";
+import { procesosApi, clientesApi, automatizacionesApi, automatizacionesPythonApi } from "@/lib/api";
 import type { Proceso, InstanciaProceso } from "@/types/proceso";
+import type { AutomatizacionPython } from "@/lib/api";
+import { useToast } from "@/hooks/useToast";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { LoadingCard } from "@/components/shared/LoadingTable";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -257,11 +259,13 @@ function ResultadoOptimizarIA({
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export default function ProcesosPage() {
+  const toast = useToast();
   const [procesos, setProcesos] = useState<Proceso[]>([]);
   const [instancias, setInstancias] = useState<InstanciaProceso[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorCarga, setErrorCarga] = useState<string | null>(null);
-  const [tab, setTab] = useState<"activas" | "templates">("activas");
+  const [tab, setTab] = useState<"activas" | "templates" | "automatizaciones">("activas");
+  const [autoPythonActivas, setAutoPythonActivas] = useState<AutomatizacionPython[]>([]);
 
   // Modal "Usar template"
   const [modalProceso, setModalProceso] = useState<Proceso | null>(null);
@@ -280,12 +284,14 @@ export default function ProcesosPage() {
     setLoading(true);
     setErrorCarga(null);
     try {
-      const [p, i] = await Promise.all([
+      const [p, i, autos] = await Promise.all([
         procesosApi.listar(),
         procesosApi.instancias({ estado: "en_progreso" }),
+        automatizacionesPythonApi.listar().catch(() => [] as AutomatizacionPython[]),
       ]);
       setProcesos(p);
       setInstancias(i);
+      setAutoPythonActivas(autos.filter((a: AutomatizacionPython) => a.estado === "activo"));
     } catch (err: any) {
       setErrorCarga(err.message ?? "Error al cargar los procesos");
     } finally {
@@ -315,7 +321,7 @@ export default function ProcesosPage() {
       setTab("activas");
       await cargar();
     } catch (e: any) {
-      alert(e.message ?? "Error al iniciar el proceso");
+      toast.error(e.message ?? "Error al iniciar el proceso");
     } finally {
       setIniciando(false);
     }
@@ -355,23 +361,24 @@ export default function ProcesosPage() {
         optimizado.descripcion ?? null,
         optimizado.pasos ?? []
       );
+      toast.success("Optimización aplicada correctamente");
       setModalIA(null);
       await cargar();
     } catch (e: any) {
-      alert(e.message ?? "Error al aplicar la optimización");
+      toast.error(e.message ?? "Error al aplicar la optimización");
     } finally {
       setAplicandoOpt(false);
     }
   };
 
   const handleRestaurarVersionAnterior = async (templateId: number) => {
-    if (!confirm("¿Restaurar la versión anterior del template?")) return;
     try {
       await procesosApi.restaurarVersionAnterior(templateId);
+      toast.success("Versión anterior restaurada");
       setModalIA(null);
       await cargar();
     } catch (e: any) {
-      alert(e.message ?? "Error al restaurar");
+      toast.error(e.message ?? "Error al restaurar la versión anterior");
     }
   };
 
@@ -411,11 +418,12 @@ export default function ProcesosPage() {
         });
       }
 
+      toast.success("Proceso guardado correctamente");
       setModalNuevo(null);
       setTab("templates");
       await cargar();
     } catch (e: any) {
-      alert(e.message ?? "Error al guardar");
+      toast.error(e.message ?? "Error al guardar el proceso");
       setModalNuevo((prev) => prev ? { ...prev, guardando: false } : null);
     }
   };
@@ -431,7 +439,7 @@ export default function ProcesosPage() {
       const resultado = await procesosApi.optimizarDesdeDescripcion(modalNuevo!.descripcion);
       setModalNuevo((prev) => prev ? { ...prev, loading: false, resultado } : null);
     } catch (e: any) {
-      alert(e.message ?? "Error al generar");
+      toast.error(e.message ?? "Error al generar el proceso con IA");
       setModalNuevo((prev) => prev ? { ...prev, loading: false } : null);
     }
   };
@@ -457,6 +465,7 @@ export default function ProcesosPage() {
         {([
           { value: "activas", label: `En progreso (${instancias.length})` },
           { value: "templates", label: `Templates (${procesos.length})` },
+          { value: "automatizaciones", label: `Automatizaciones IA (${autoPythonActivas.length})` },
         ] as const).map(({ value, label }) => (
           <button
             key={value}
@@ -553,7 +562,7 @@ export default function ProcesosPage() {
             })}
           </div>
         )
-      ) : (
+      ) : tab === "templates" ? (
         procesos.length === 0 ? (
           <EmptyState
             icon={GitBranch}
@@ -660,6 +669,40 @@ export default function ProcesosPage() {
                   >
                     Usar template →
                   </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      ) : (
+        autoPythonActivas.length === 0 ? (
+          <EmptyState
+            icon={Bot}
+            title="Sin automatizaciones activas"
+            description="Activá una automatización Python desde la sección Automatizaciones para verla aquí"
+          />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {autoPythonActivas.map((auto) => (
+              <div key={auto.id} className="bg-white rounded-xl border border-gray-100 p-5 flex flex-col gap-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-800">{auto.nombre}</p>
+                    {auto.descripcion && (
+                      <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{auto.descripcion}</p>
+                    )}
+                  </div>
+                  <span className="ml-2 shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                    ACTIVA
+                  </span>
+                </div>
+                <div className="mt-auto pt-2 border-t border-gray-50 flex justify-end">
+                  <Link
+                    href="/automatizaciones"
+                    className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-0.5"
+                  >
+                    Ver en Automatizaciones <ChevronRight className="h-3 w-3" />
+                  </Link>
                 </div>
               </div>
             ))}

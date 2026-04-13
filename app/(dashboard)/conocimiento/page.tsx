@@ -120,7 +120,9 @@ function SopCard({ sop }: { sop: SopItem }) {
               </p>
             )}
             {sop.url && (
-              <a href={sop.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
+              <a
+                href={sop.url.startsWith("/") ? `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}${sop.url}` : sop.url}
+                target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
                 className="text-[10px] text-blue-500 hover:underline flex items-center gap-0.5">
                 <Globe className="h-3 w-3" /> Ver PDF
               </a>

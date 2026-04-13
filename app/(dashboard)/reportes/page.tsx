@@ -124,15 +124,34 @@ export default function ReportesPage() {
         </div>
       )}
 
-      {error && (
-        <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
-          <AlertTriangle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-red-700">Error al cargar el reporte</p>
-            <p className="text-xs text-red-500 mt-0.5">{error}</p>
+      {error && (() => {
+        const esTarifa = error.toLowerCase().includes("tarifa") || error.toLowerCase().includes("configurar");
+        const esPeriodo = error.toLowerCase().includes("period") || error.toLowerCase().includes("fecha");
+        const esConexion = error.toLowerCase().includes("conectar") || error.toLowerCase().includes("servidor");
+        const mensajePrincipal = esTarifa
+          ? "Configurá la tarifa-hora para ver este reporte"
+          : esPeriodo
+          ? "Período inválido — verificá el rango de fechas"
+          : esConexion
+          ? "No se pudo conectar al servidor"
+          : "Error al cargar el reporte";
+        const mensajeSecundario = esTarifa
+          ? "Ir a Configuración → Datos del estudio → Tarifa hora"
+          : esPeriodo
+          ? null
+          : error;
+        return (
+          <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+            <AlertTriangle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-red-700">{mensajePrincipal}</p>
+              {mensajeSecundario && (
+                <p className="text-xs text-red-500 mt-0.5">{mensajeSecundario}</p>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {!loading && !error && data && (
         <>
@@ -230,14 +249,14 @@ export default function ReportesPage() {
             <div className="space-y-4">
               {data.empleados && data.empleados.length > 0 ? (
                 <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-                  <div className="grid grid-cols-[2fr_1fr_1fr_1fr_120px] gap-4 px-4 py-3 bg-gray-50 border-b border-gray-100">
-                    {["Nombre", "Pendientes", "En curso", "Completadas", "Nivel carga"].map((h) => (
+                  <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_120px] gap-4 px-4 py-3 bg-gray-50 border-b border-gray-100">
+                    {["Nombre", "Pendientes", "En curso", "Completadas", "Hs reales", "Nivel carga"].map((h) => (
                       <span key={h} className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{h}</span>
                     ))}
                   </div>
                   <div className="divide-y divide-gray-50">
                     {data.empleados.map((e: any) => (
-                      <div key={e.empleado_id ?? e.nombre} className="grid grid-cols-[2fr_1fr_1fr_1fr_120px] gap-4 px-4 py-3.5 items-center">
+                      <div key={e.empleado_id ?? e.nombre} className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_120px] gap-4 px-4 py-3.5 items-center">
                         <div className="flex items-center gap-2">
                           <div className="w-7 h-7 rounded-full bg-blue-50 flex items-center justify-center text-xs font-bold text-blue-600 shrink-0">
                             {(e.nombre ?? "?").charAt(0)}
@@ -247,6 +266,9 @@ export default function ReportesPage() {
                         <span className="text-sm text-gray-700">{e.tareas_pendientes ?? 0}</span>
                         <span className="text-sm text-gray-700">{e.tareas_en_curso ?? 0}</span>
                         <span className="text-sm text-gray-700">{e.tareas_completadas_periodo ?? 0}</span>
+                        <span className="text-sm text-gray-700">
+                          {e.horas_reales_sesiones != null ? `${e.horas_reales_sesiones} hs` : "—"}
+                        </span>
                         <span className={cn(
                           "inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold w-fit",
                           NIVEL_CARGA_COLOR[e.nivel_carga] ?? "bg-gray-100 text-gray-600"
@@ -273,6 +295,27 @@ export default function ReportesPage() {
           {/* ── RENTABILIDAD ── */}
           {tab === "rentabilidad" && (
             <div className="space-y-4">
+              {data.sin_configurar ? (
+                <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-amber-50 flex items-center justify-center">
+                    <TrendingUp className="h-8 w-8 text-amber-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-700">Tarifa-hora no configurada</p>
+                    <p className="text-xs text-gray-400 mt-1 max-w-xs leading-relaxed">
+                      Configurá la tarifa-hora del estudio en Configuración para calcular
+                      la rentabilidad por cliente.
+                    </p>
+                  </div>
+                  <a
+                    href="/configuracion"
+                    className="text-xs font-medium text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-lg transition-colors"
+                  >
+                    Ir a Configuración →
+                  </a>
+                </div>
+              ) : (
+              <>
               {data.tarifa_hora && (
                 <div className="flex items-center gap-2 text-xs text-gray-500">
                   <span>Tarifa hora configurada:</span>
@@ -350,6 +393,8 @@ export default function ReportesPage() {
                   <TrendingUp className="h-10 w-10 mx-auto mb-2 opacity-30" />
                   <p className="text-sm">Sin datos de rentabilidad para este período</p>
                 </div>
+              )}
+              </>
               )}
             </div>
           )}

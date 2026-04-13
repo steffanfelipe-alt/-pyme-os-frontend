@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useToast } from "@/hooks/useToast";
 import {
   Settings, Save, Loader2, CheckCircle2, Upload, AlertCircle, Users,
   Key, Eye, EyeOff, MessageSquare, Bot, Mail, Link2, RefreshCw,
@@ -126,6 +127,7 @@ export default function ConfiguracionPage() {
   const [importError, setImportError] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
+  const toast = useToast();
 
   // ── Carga inicial ──
   useEffect(() => {
@@ -182,7 +184,7 @@ export default function ConfiguracionPage() {
           setGmail({ conectado: true, gmail_address: res.gmail_address });
           router.replace("/configuracion");
         })
-        .catch((e) => alert(e.message ?? "Error al conectar Gmail"))
+        .catch((e: any) => toast.error(e.message ?? "Error al conectar Gmail"))
         .finally(() => setConectandoGmail(false));
     }
   }, [searchParams]);
@@ -216,7 +218,7 @@ export default function ConfiguracionPage() {
       const info = await configuracionApi.infoWebhookTelegram();
       setWebhookInfo(info);
     } catch (e: any) {
-      alert(e.message ?? "Error al registrar webhook");
+      toast.error(e.message ?? "Error al registrar webhook");
     } finally {
       setRegistrando(false);
     }
@@ -228,9 +230,10 @@ export default function ConfiguracionPage() {
     try {
       const r = await configuracionApi.generarCodigoTelegram();
       setCodigo(r);
-      setTimeout(() => setCodigo(null), r.expira_en_minutos * 60 * 1000);
+      const msLeft = new Date(r.expira_en).getTime() - Date.now();
+      if (msLeft > 0) setTimeout(() => setCodigo(null), msLeft);
     } catch (e: any) {
-      alert(e.message ?? "Error al generar código");
+      toast.error(e.message ?? "Error al generar código");
     } finally {
       setGenerandoCodigo(false);
     }
@@ -243,32 +246,40 @@ export default function ConfiguracionPage() {
       const { auth_url } = await emailsApi.iniciarOAuthGmail(redirect_uri);
       window.location.href = auth_url;
     } catch (e: any) {
-      alert(e.message ?? "Error iniciando OAuth");
+      toast.error(e.message ?? "Error iniciando OAuth");
       setLoadingGmail(false);
     }
   };
 
   const handleDesconectarGmail = async () => {
-    if (!confirm("¿Desconectar Gmail?")) return;
     await emailsApi.desconectarGmail().catch(() => {});
     setGmail({ conectado: false });
+    toast.success("Gmail desconectado");
   };
 
   const handleSaveArca = async () => {
+    if (!arca.cuit || !arca.punto_venta) {
+      toast.error("CUIT y punto de venta son obligatorios");
+      return;
+    }
     setSavingArca(true);
     try {
-      await facturacionApi.guardarConfig({
+      const payload: Parameters<typeof facturacionApi.guardarConfig>[0] = {
         cuit: arca.cuit,
         punto_venta: parseInt(arca.punto_venta) || 1,
         certificado_b64: arca.certificado_b64,
         clave_privada_b64: arca.clave_privada_b64,
         modo: arca.modo,
-      });
+      };
+      // No enviar certs vacíos si ya hay config guardada
+      if (!arca.certificado_b64 && arcaConfigurado) delete (payload as any).certificado_b64;
+      if (!arca.clave_privada_b64 && arcaConfigurado) delete (payload as any).clave_privada_b64;
+      await facturacionApi.guardarConfig(payload);
       setArcaConfigurado(true);
       setSavedArca(true);
       setTimeout(() => setSavedArca(false), 2500);
     } catch (e: any) {
-      alert(e.message ?? "Error guardando config ARCA");
+      toast.error(e.message ?? "Error guardando config ARCA");
     } finally {
       setSavingArca(false);
     }

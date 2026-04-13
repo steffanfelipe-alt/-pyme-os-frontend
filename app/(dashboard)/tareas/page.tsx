@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { CheckSquare, Play, CheckCheck, Clock, Search, Plus, X } from "lucide-react";
 import { tareasApi, clientesApi, empleadosApi } from "@/lib/api";
+import { useToast } from "@/hooks/useToast";
 import type { Tarea } from "@/types/tarea";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { LoadingTable } from "@/components/shared/LoadingTable";
@@ -50,6 +51,7 @@ const FORM_INICIAL: NuevaTareaForm = {
 };
 
 export default function TareasPage() {
+  const toast = useToast();
   const [tareas, setTareas] = useState<Tarea[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorCarga, setErrorCarga] = useState<string | null>(null);
@@ -107,10 +109,11 @@ export default function TareasPage() {
         fecha_limite: form.fecha_limite || undefined,
         horas_estimadas: form.horas_estimadas ? Number(form.horas_estimadas) : undefined,
       } as any);
+      toast.success("Tarea creada correctamente");
       setModalOpen(false);
       await cargar();
     } catch (e: any) {
-      alert(e.message ?? "Error al crear la tarea");
+      toast.error(e.message ?? "Error al crear la tarea");
     } finally {
       setGuardando(false);
     }

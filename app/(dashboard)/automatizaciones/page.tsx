@@ -11,6 +11,7 @@ import {
   type AutomatizacionPython, type NodoPython, type InputPendiente,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/useToast";
 
 // ─── Node type styles ──────────────────────────────────────────────────────────
 
@@ -189,8 +190,10 @@ function AutoPythonCard({
   auto: AutomatizacionPython;
   onRefresh: () => void;
 }) {
+  const toast = useToast();
   const [expanded, setExpanded] = useState(false);
   const [generando, setGenerando] = useState(false);
+  const [activando, setActivando] = useState(false);
   const [loadingInputs, setLoadingInputs] = useState(false);
   const [pendientes, setPendientes] = useState<InputPendiente[] | null>(null);
   const [guardandoInputs, setGuardandoInputs] = useState(false);
@@ -233,6 +236,22 @@ function AutoPythonCard({
       setError(e instanceof Error ? e.message : "Error guardando inputs");
     } finally {
       setGuardandoInputs(false);
+    }
+  };
+
+  const handleActivar = async () => {
+    setActivando(true);
+    setError(null);
+    try {
+      await automatizacionesPythonApi.activar(auto.id);
+      toast.success(`Automatización "${auto.nombre}" activada`);
+      onRefresh();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Error al activar";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setActivando(false);
     }
   };
 
@@ -306,6 +325,16 @@ function AutoPythonCard({
 
             {/* Actions */}
             <div className="flex flex-wrap gap-2">
+              {auto.estado === "borrador" && (
+                <button
+                  onClick={handleActivar}
+                  disabled={activando}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors disabled:opacity-50"
+                >
+                  {activando ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
+                  {activando ? "Activando..." : "Activar"}
+                </button>
+              )}
               {hasInputsConfig && (
                 <button
                   onClick={handleVerInputs}
@@ -408,9 +437,11 @@ function AutoN8nCard({ auto }: { auto: any }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 type Tab = "python" | "n8n";
+type FiltroEstado = "todos" | "borrador" | "activo" | "archivado";
 
 export default function AutomatizacionesPage() {
   const [tab, setTab] = useState<Tab>("python");
+  const [filtroEstado, setFiltroEstado] = useState<FiltroEstado>("todos");
   const [autosPython, setAutosPython] = useState<AutomatizacionPython[]>([]);
   const [autosN8n, setAutosN8n] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -459,8 +490,9 @@ export default function AutomatizacionesPage() {
     }
   };
 
-  const activosPython = autosPython.filter(a => a.estado !== "archivado");
-  const archivadosPython = autosPython.filter(a => a.estado === "archivado");
+  const filtradosPython = autosPython.filter(
+    (a) => filtroEstado === "todos" || a.estado === filtroEstado
+  );
 
   return (
     <div className="space-y-5 max-w-3xl">
@@ -541,7 +573,7 @@ export default function AutomatizacionesPage() {
           Python Visual
           {autosPython.length > 0 && (
             <span className="ml-1 text-[10px] bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full font-bold">
-              {activosPython.length}
+              {autosPython.length}
             </span>
           )}
         </button>
@@ -579,7 +611,7 @@ export default function AutomatizacionesPage() {
       {/* Python tab */}
       {!loading && tab === "python" && (
         <div className="space-y-3">
-          {activosPython.length === 0 && archivadosPython.length === 0 ? (
+          {autosPython.length === 0 ? (
             <div className="bg-white rounded-xl border border-gray-100 p-10 text-center">
               <Code2 className="h-10 w-10 text-gray-200 mx-auto mb-3" />
               <p className="text-sm text-gray-500 font-medium">Sin automatizaciones Python</p>
@@ -594,18 +626,33 @@ export default function AutomatizacionesPage() {
             </div>
           ) : (
             <>
-              {activosPython.map((a) => (
-                <AutoPythonCard key={a.id} auto={a} onRefresh={cargar} />
-              ))}
-              {archivadosPython.length > 0 && (
-                <div className="pt-2">
-                  <p className="text-xs font-semibold text-gray-400 flex items-center gap-1.5 mb-2">
-                    <Archive className="h-3.5 w-3.5" /> Archivadas ({archivadosPython.length})
-                  </p>
-                  {archivadosPython.map((a) => (
-                    <AutoPythonCard key={a.id} auto={a} onRefresh={cargar} />
-                  ))}
+              {/* Filter tabs */}
+              <div className="flex gap-1 bg-gray-100 p-1 rounded-lg w-fit">
+                {(["todos", "borrador", "activo", "archivado"] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setFiltroEstado(f)}
+                    className={cn(
+                      "px-3 py-1 text-xs font-medium rounded-md transition-colors capitalize",
+                      filtroEstado === f ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700"
+                    )}
+                  >
+                    {f === "todos" ? "Todos" : f}
+                    <span className="ml-1 text-[10px] opacity-60">
+                      ({f === "todos" ? autosPython.length : autosPython.filter(a => a.estado === f).length})
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {filtradosPython.length === 0 ? (
+                <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
+                  <p className="text-sm text-gray-400">Sin automatizaciones en estado "{filtroEstado}"</p>
                 </div>
+              ) : (
+                filtradosPython.map((a) => (
+                  <AutoPythonCard key={a.id} auto={a} onRefresh={cargar} />
+                ))
               )}
             </>
           )}

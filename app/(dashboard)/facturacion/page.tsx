@@ -3,13 +3,14 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   FileText, Plus, Send, CreditCard, Settings, Loader2,
-  CheckCircle2, XCircle, RefreshCw, X, ChevronDown,
+  CheckCircle2, XCircle, RefreshCw, X, ChevronDown, AlertTriangle,
 } from "lucide-react";
 import { facturacionApi, clientesApi, type Comprobante, type HonorarioRecurrente } from "@/lib/api";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { LoadingTable } from "@/components/shared/LoadingTable";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { formatFecha, formatCurrency, cn } from "@/lib/utils";
+import { useToast } from "@/hooks/useToast";
 
 const ESTADO_COLOR: Record<string, string> = {
   pendiente: "bg-amber-100 text-amber-700",
@@ -70,6 +71,8 @@ export default function FacturacionPage() {
   const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [config, setConfig] = useState<any>(null);
   const [configLoading, setConfigLoading] = useState(false);
+  const [arcaNoConfigurado, setArcaNoConfigurado] = useState(false);
+  const toast = useToast();
 
   // Modal comprobante
   const [modalComp, setModalComp] = useState(false);
@@ -96,14 +99,16 @@ export default function FacturacionPage() {
     setLoading(true);
     setErrorCarga(null);
     try {
-      const [c, h, cl] = await Promise.all([
+      const [c, h, cl, arcaCfg] = await Promise.all([
         facturacionApi.listarComprobantes(),
         facturacionApi.listarHonorarios(),
         clientesApi.listar({ limit: 500 }),
+        facturacionApi.obtenerConfig().catch(() => null),
       ]);
       setComprobantes(c);
       setHonorarios(h);
       setClientes(cl.map((x: any) => ({ id: x.id, nombre: x.nombre })));
+      setArcaNoConfigurado(!arcaCfg?.configurado);
     } catch (err: any) {
       setErrorCarga(err.message ?? "Error al cargar facturación");
     } finally {
@@ -146,7 +151,7 @@ export default function FacturacionPage() {
       setFormComp(FORM_COMP_INICIAL);
       await cargar();
     } catch (e: any) {
-      alert(e.message ?? "Error al emitir comprobante");
+      toast.error(e.message ?? "Error al emitir comprobante");
     } finally {
       setGuardandoComp(false);
     }
@@ -168,7 +173,7 @@ export default function FacturacionPage() {
       setFormHon(FORM_HON_INICIAL);
       await cargar();
     } catch (e: any) {
-      alert(e.message ?? "Error al crear honorario recurrente");
+      toast.error(e.message ?? "Error al crear honorario recurrente");
     } finally {
       setGuardandoHon(false);
     }
@@ -179,7 +184,7 @@ export default function FacturacionPage() {
       await facturacionApi.emitirHonorarioAhora(id);
       await cargar();
     } catch (e: any) {
-      alert(e.message ?? "Error al emitir");
+      toast.error(e.message ?? "Error al emitir");
     }
   };
 
@@ -188,7 +193,7 @@ export default function FacturacionPage() {
       await facturacionApi.enviarComprobante(id);
       await cargar();
     } catch (e: any) {
-      alert(e.message ?? "Error al enviar");
+      toast.error(e.message ?? "Error al enviar");
     }
   };
 
@@ -205,7 +210,7 @@ export default function FacturacionPage() {
       setConfigSaved(true);
       setTimeout(() => setConfigSaved(false), 2500);
     } catch (e: any) {
-      alert(e.message ?? "Error al guardar configuración");
+      toast.error(e.message ?? "Error al guardar configuración");
     } finally {
       setGuardandoConfig(false);
     }
@@ -242,6 +247,25 @@ export default function FacturacionPage() {
           ) : null
         }
       />
+
+      {/* Banner ARCA no configurado */}
+      {arcaNoConfigurado && (
+        <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+          <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-amber-800">ARCA no configurado</p>
+            <p className="text-xs text-amber-600 mt-0.5">
+              No podrás emitir facturas hasta configurar los datos de ARCA/AFIP.{" "}
+              <button
+                onClick={() => setTab("config")}
+                className="underline font-medium hover:text-amber-800"
+              >
+                Ir a Config ARCA
+              </button>
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Métricas rápidas */}
       <div className="grid grid-cols-3 gap-4">
