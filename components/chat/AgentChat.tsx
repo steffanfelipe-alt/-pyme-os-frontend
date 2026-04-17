@@ -14,6 +14,8 @@ interface Message {
 interface AgentChatProps {
   mode?: "dashboard" | "assistant";
   placeholder?: string;
+  buttonPosition?: string;
+  panelPosition?: string;
 }
 
 const SUGERENCIAS_DEFAULT = [
@@ -50,6 +52,8 @@ function renderMarkdown(text: string): React.ReactNode {
 export function AgentChat({
   mode = "dashboard",
   placeholder = "Preguntá algo sobre tus clientes...",
+  buttonPosition = "fixed bottom-6 right-6",
+  panelPosition = "fixed bottom-6 right-6",
 }: AgentChatProps) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -119,16 +123,17 @@ export function AgentChat({
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-6 w-12 h-12 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all flex items-center justify-center z-40 hover:scale-105"
+          className={`${buttonPosition} w-12 h-12 ${mode === "assistant" ? "bg-purple-600 hover:bg-purple-700" : "bg-blue-600 hover:bg-blue-700"} text-white rounded-full shadow-lg transition-all flex items-center justify-center z-40 hover:scale-105`}
+          title={mode === "assistant" ? "Consultor contable" : "Asistente dashboard"}
         >
           <MessageCircle className="h-5 w-5" />
         </button>
       )}
 
       {open && (
-        <div className="fixed bottom-6 right-6 w-96 h-[480px] bg-white rounded-2xl shadow-xl border border-gray-100 flex flex-col z-50 overflow-hidden">
+        <div className={`${panelPosition} w-96 h-[480px] bg-white rounded-2xl shadow-xl border border-gray-100 flex flex-col z-50 overflow-hidden`}>
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 bg-blue-600 shrink-0">
+          <div className={`flex items-center justify-between px-4 py-3 ${mode === "assistant" ? "bg-purple-600" : "bg-blue-600"} shrink-0`}>
             <div className="flex items-center gap-2">
               <Bot className="h-4 w-4 text-white" />
               <span className="text-sm font-semibold text-white">

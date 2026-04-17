@@ -52,6 +52,46 @@ export interface ClienteDetalle {
   updated_at: string;
 }
 
+export interface AlertaFicha {
+  id: number;
+  tipo: string;
+  titulo: string;
+  mensaje: string;
+  nivel: string;
+  created_at: string;
+}
+
+export interface AbonoFicha {
+  id: number;
+  monto: number;
+  periodo: string;
+  estado: string;
+  fecha_vencimiento: string;
+}
+
+export interface CobroFicha {
+  id: number;
+  monto: number;
+  fecha_cobro: string;
+  medio_pago: string | null;
+  estado: string;
+}
+
+export interface PortalFicha {
+  tiene_acceso: boolean;
+  email: string | null;
+  ultimo_login: string | null;
+}
+
+export interface ResumenFicha {
+  score_riesgo: number | null;
+  alertas_activas: number;
+  vencimientos_proximos_7_dias: number;
+  tareas_pendientes: number;
+  cobro_estado: string | null;
+  honorario_base: number | null;
+}
+
 export interface FichaCliente {
   cliente: ClienteDetalle;
   contador_principal: {
@@ -76,6 +116,12 @@ export interface FichaCliente {
   };
   estado_alerta: EstadoAlerta;
   documentos: DocumentoResumen[];
+  alertas_activas?: AlertaFicha[];
+  abono?: AbonoFicha | null;
+  historial_cobros?: CobroFicha[];
+  portal?: PortalFicha | null;
+  resumen?: ResumenFicha | null;
+  notas?: string | null;
 }
 
 export interface VencimientoFicha {

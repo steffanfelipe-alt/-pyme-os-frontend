@@ -16,8 +16,15 @@ export default function DashboardLayout({
           <TopBar />
           <main className="flex-1 overflow-y-auto p-6">{children}</main>
         </div>
-        {/* AgentChat vive en el layout — el estado de conversación persiste entre navegaciones */}
+        {/* AgentChat dashboard: métricas y gestión */}
         <AgentChat mode="dashboard" />
+        {/* ChatbotInterno: consultor contable-fiscal */}
+        <AgentChat
+          mode="assistant"
+          placeholder="Consultá sobre impuestos, AFIP, categorías..."
+          buttonPosition="fixed bottom-6 right-24"
+          panelPosition="fixed bottom-6 right-24"
+        />
       </div>
     </ToastProvider>
   );

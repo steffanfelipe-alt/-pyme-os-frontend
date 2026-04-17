@@ -24,7 +24,7 @@ interface ApiOptions extends RequestInit {
   params?: Record<string, string | number | boolean | undefined | null>;
 }
 
-async function apiFetch<T>(
+export async function apiFetch<T>(
   path: string,
   options: ApiOptions = {}
 ): Promise<T> {
