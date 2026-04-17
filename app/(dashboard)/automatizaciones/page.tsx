@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import {
-  Zap, Plus, Loader2, AlertCircle, ChevronDown, ChevronUp,
+  Plus, Loader2, AlertCircle, ChevronDown, ChevronUp,
   Code2, Play, Settings2, CheckCircle2, Clock, ArrowRight,
   Wand2, Terminal, Eye, EyeOff, RefreshCw, Archive,
 } from "lucide-react";
 import {
-  automatizacionesApi, automatizacionesPythonApi,
+  automatizacionesPythonApi,
   type AutomatizacionPython, type NodoPython, type InputPendiente,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -379,71 +380,14 @@ function AutoPythonCard({
   );
 }
 
-// ─── n8n automation card ──────────────────────────────────────────────────────
-
-function AutoN8nCard({ auto }: { auto: any }) {
-  const [showJson, setShowJson] = useState(false);
-
-  return (
-    <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-      <div className="flex items-start gap-3 px-5 py-4">
-        <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
-          <Zap className="h-4 w-4 text-amber-600" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-sm font-medium text-gray-900">{auto.nombre}</p>
-            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">n8n</span>
-            {auto.aprobado && (
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">Aprobado</span>
-            )}
-          </div>
-          {auto.template_nombre && (
-            <p className="text-xs text-gray-400 mt-0.5">Proceso: {auto.template_nombre}</p>
-          )}
-          <div className="flex items-center gap-3 mt-1">
-            {auto.ahorro_horas_mes != null && (
-              <p className="text-[10px] text-gray-400 flex items-center gap-0.5">
-                <Clock className="h-3 w-3" />
-                {auto.ahorro_horas_mes}h/mes ahorradas
-              </p>
-            )}
-            {auto.herramienta && (
-              <p className="text-[10px] text-gray-400">{auto.herramienta}</p>
-            )}
-          </div>
-        </div>
-        {auto.flujo_json && (
-          <button
-            onClick={() => setShowJson((s) => !s)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-gray-500 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors shrink-0"
-          >
-            {showJson ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-            JSON
-          </button>
-        )}
-      </div>
-      {showJson && auto.flujo_json && (
-        <div className="border-t border-gray-100 bg-gray-900 p-4 overflow-x-auto">
-          <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap">
-            {JSON.stringify(auto.flujo_json, null, 2)}
-          </pre>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-type Tab = "python" | "n8n";
 type FiltroEstado = "todos" | "borrador" | "activo" | "archivado";
 
 export default function AutomatizacionesPage() {
-  const [tab, setTab] = useState<Tab>("python");
+  const searchParams = useSearchParams();
   const [filtroEstado, setFiltroEstado] = useState<FiltroEstado>("todos");
   const [autosPython, setAutosPython] = useState<AutomatizacionPython[]>([]);
-  const [autosN8n, setAutosN8n] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -458,18 +402,25 @@ export default function AutomatizacionesPage() {
     setLoading(true);
     setError(null);
     try {
-      const [python, n8n] = await Promise.all([
-        automatizacionesPythonApi.listar().catch(() => []),
-        automatizacionesApi.listarPendientes?.().catch(() => []) ?? Promise.resolve([]),
-      ]);
+      const python = await automatizacionesPythonApi.listar().catch(() => []);
       setAutosPython(python as AutomatizacionPython[]);
-      setAutosN8n(n8n as any[]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error al cargar automatizaciones");
     } finally {
       setLoading(false);
     }
   }, []);
+
+  // Si viene desde un proceso, pre-llenar la descripción y abrir el panel
+  useEffect(() => {
+    const desc = searchParams.get("descripcion");
+    const nom = searchParams.get("nombre");
+    if (desc) {
+      setDescripcion(decodeURIComponent(desc));
+      if (nom) setNombre(decodeURIComponent(nom));
+      setShowGenerar(true);
+    }
+  }, [searchParams]);
 
   useEffect(() => { cargar(); }, [cargar]);
 
@@ -500,17 +451,15 @@ export default function AutomatizacionesPage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Automatizaciones</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Flujos Python visuales y automatizaciones n8n del estudio</p>
+          <p className="text-sm text-gray-400 mt-0.5">Flujos Python visuales para automatizar procesos del estudio</p>
         </div>
-        {tab === "python" && (
-          <button
-            onClick={() => setShowGenerar((s) => !s)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors shrink-0"
-          >
-            <Wand2 className="h-4 w-4" />
-            Generar con IA
-          </button>
-        )}
+        <button
+          onClick={() => setShowGenerar((s) => !s)}
+          className="flex items-center gap-1.5 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors shrink-0"
+        >
+          <Wand2 className="h-4 w-4" />
+          Generar con IA
+        </button>
       </div>
 
       {/* Generate panel */}
@@ -560,38 +509,15 @@ export default function AutomatizacionesPage() {
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
-        <button
-          onClick={() => setTab("python")}
-          className={cn(
-            "flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors",
-            tab === "python" ? "bg-white text-purple-700 shadow-sm" : "text-gray-500 hover:text-gray-700"
-          )}
-        >
-          <Code2 className="h-3.5 w-3.5" />
-          Python Visual
-          {autosPython.length > 0 && (
-            <span className="ml-1 text-[10px] bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full font-bold">
-              {autosPython.length}
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => setTab("n8n")}
-          className={cn(
-            "flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors",
-            tab === "n8n" ? "bg-white text-amber-700 shadow-sm" : "text-gray-500 hover:text-gray-700"
-          )}
-        >
-          <Zap className="h-3.5 w-3.5" />
-          n8n
-          {autosN8n.length > 0 && (
-            <span className="ml-1 text-[10px] bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full font-bold">
-              {autosN8n.length}
-            </span>
-          )}
-        </button>
+      {/* Tab header */}
+      <div className="flex items-center gap-2">
+        <Code2 className="h-4 w-4 text-purple-600" />
+        <span className="text-sm font-semibold text-purple-700">Python Visual</span>
+        {autosPython.length > 0 && (
+          <span className="text-[10px] bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full font-bold">
+            {autosPython.length}
+          </span>
+        )}
       </div>
 
       {/* Error */}
@@ -608,8 +534,8 @@ export default function AutomatizacionesPage() {
         </div>
       )}
 
-      {/* Python tab */}
-      {!loading && tab === "python" && (
+      {/* Automatizaciones Python */}
+      {!loading && (
         <div className="space-y-3">
           {autosPython.length === 0 ? (
             <div className="bg-white rounded-xl border border-gray-100 p-10 text-center">
@@ -659,20 +585,6 @@ export default function AutomatizacionesPage() {
         </div>
       )}
 
-      {/* n8n tab */}
-      {!loading && tab === "n8n" && (
-        <div className="space-y-3">
-          {autosN8n.length === 0 ? (
-            <div className="bg-white rounded-xl border border-gray-100 p-10 text-center">
-              <Zap className="h-10 w-10 text-gray-200 mx-auto mb-3" />
-              <p className="text-sm text-gray-500 font-medium">Sin automatizaciones n8n</p>
-              <p className="text-xs text-gray-400 mt-1">Generá un flujo n8n desde un proceso en la sección Procesos</p>
-            </div>
-          ) : (
-            autosN8n.map((a) => <AutoN8nCard key={a.id} auto={a} />)
-          )}
-        </div>
-      )}
 
       {/* Refresh */}
       {!loading && (

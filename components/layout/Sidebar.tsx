@@ -16,6 +16,7 @@ import {
   Zap,
   BookOpen,
   Bot,
+  Rocket,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { clearToken } from "@/lib/api";
@@ -42,6 +43,7 @@ function useNavGroups(urgentCount: number): NavGroup[] {
       items: [
         { href: "/", icon: LayoutDashboard, label: "Dashboard", exact: true },
         { href: "/clientes", icon: Users, label: "Clientes" },
+        { href: "/onboarding", icon: Rocket, label: "Onboarding" },
       ],
     },
     {

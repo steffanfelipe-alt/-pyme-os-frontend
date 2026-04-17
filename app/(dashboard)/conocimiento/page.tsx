@@ -79,15 +79,20 @@ function SopCard({ sop }: { sop: SopItem }) {
   const [expanded, setExpanded] = useState(false);
   const [detalle, setDetalle] = useState<any>(null);
   const [loadingDetalle, setLoadingDetalle] = useState(false);
+  const [errorDetalle, setErrorDetalle] = useState(false);
 
   const handleExpand = async () => {
     if (!expanded && !detalle) {
       setLoadingDetalle(true);
+      setErrorDetalle(false);
       try {
         const d = await conocimientoApi.obtenerSop(sop.id);
         setDetalle(d);
-      } catch {}
-      finally { setLoadingDetalle(false); }
+      } catch {
+        setErrorDetalle(true);
+      } finally {
+        setLoadingDetalle(false);
+      }
     }
     setExpanded((e) => !e);
   };
@@ -137,6 +142,12 @@ function SopCard({ sop }: { sop: SopItem }) {
       {expanded && (
         <div className="px-5 pb-5 border-t border-gray-50 space-y-3 pt-3">
           {loadingDetalle && <Loader2 className="h-4 w-4 animate-spin text-gray-300 mx-auto" />}
+          {errorDetalle && (
+            <p className="text-xs text-red-500 flex items-center gap-1">
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+              Error al cargar el documento. Intenta nuevamente.
+            </p>
+          )}
           {detalle && (
             <>
               {detalle.resultado_esperado && (
@@ -145,9 +156,9 @@ function SopCard({ sop }: { sop: SopItem }) {
                   <p className="text-xs text-gray-600">{detalle.resultado_esperado}</p>
                 </div>
               )}
-              {detalle.pasos && detalle.pasos.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-gray-500 mb-2">Pasos</p>
+              <div>
+                <p className="text-xs font-semibold text-gray-500 mb-2">Pasos</p>
+                {detalle.pasos && detalle.pasos.length > 0 ? (
                   <ol className="space-y-1.5">
                     {detalle.pasos.map((p: any, i: number) => (
                       <li key={i} className="flex gap-2 text-xs text-gray-600">
@@ -161,8 +172,10 @@ function SopCard({ sop }: { sop: SopItem }) {
                       </li>
                     ))}
                   </ol>
-                </div>
-              )}
+                ) : (
+                  <p className="text-xs text-gray-400 italic">Sin pasos definidos.</p>
+                )}
+              </div>
             </>
           )}
         </div>

@@ -2,32 +2,43 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, ChevronRight, ChevronLeft, Upload, Loader2, Check, X } from "lucide-react";
+import {
+  CheckCircle2, ChevronRight, ChevronLeft, Upload,
+  Loader2, Check, Rocket, ArrowRight,
+} from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+interface PasoEstado {
+  numero: number;
+  titulo: string;
+  completado: boolean;
+}
+
 interface EstadoOnboarding {
   paso_actual: number;
   completado: boolean;
-  estado_cuenta: string;
-  pasos: {
-    estudio_configurado: boolean;
-    equipo_configurado: boolean;
-    clientes_importados: boolean;
-    vencimientos_configurados: boolean;
-    notificaciones_configuradas: boolean;
-  };
+  porcentaje: number;
+  pasos: PasoEstado[];
 }
 
-interface VencimientoSugerido {
+interface Sugerencia {
   id: number;
-  cliente_nombre: string;
-  tipo: string;
-  descripcion: string;
-  fecha_vencimiento: string;
+  tipo_obligacion: string;
+  periodo: string;
+  fecha_vencimiento_estimada: string;
+  fecha_es_estimada: boolean;
+  nota_verificacion: string | null;
   estado: string;
+}
+
+interface ClienteSugerido {
+  cliente_id: number;
+  cliente_nombre: string;
+  categoria_fiscal: string;
+  sugerencias: Sugerencia[];
 }
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -75,6 +86,32 @@ function BarraProgreso({ pasoActual, completados }: { pasoActual: number; comple
   );
 }
 
+// ─── Pantalla de finalización ─────────────────────────────────────────────────
+
+function PantallaCompletado({ onIrDashboard }: { onIrDashboard: () => void }) {
+  return (
+    <div className="text-center py-6 space-y-4">
+      <div className="flex justify-center">
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+          <CheckCircle2 className="w-8 h-8 text-green-500" />
+        </div>
+      </div>
+      <div>
+        <h3 className="text-lg font-bold text-gray-900">¡Configuración completa!</h3>
+        <p className="text-sm text-gray-500 mt-1">
+          Tu estudio está listo para operar. Podés volver a esta pantalla cuando quieras.
+        </p>
+      </div>
+      <button
+        onClick={onIrDashboard}
+        className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors mx-auto"
+      >
+        Ir al Dashboard <ArrowRight className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+
 // ─── Paso 1: Datos del estudio ────────────────────────────────────────────────
 
 function Paso1Estudio({ onNext }: { onNext: () => void }) {
@@ -87,8 +124,13 @@ function Paso1Estudio({ onNext }: { onNext: () => void }) {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    apiFetch<any>("/config/perfil").then(data => {
-      setForm(prev => ({ ...prev, ...data }));
+    apiFetch<Record<string, unknown>>("/config/perfil").then(data => {
+      setForm(prev => ({
+        ...prev,
+        ...Object.fromEntries(
+          Object.entries(data).map(([k, v]) => [k, v === null ? (typeof prev[k as keyof typeof prev] === "number" ? 0 : "") : v])
+        ),
+      }));
     }).catch(() => {});
   }, []);
 
@@ -266,7 +308,7 @@ function Paso2Equipo({ onNext, onSkip }: { onNext: () => void; onSkip: () => voi
 
 // ─── Paso 3: Clientes ─────────────────────────────────────────────────────────
 
-function Paso3Clientes({ onNext, onSkip }: { onNext: (clienteId?: number) => void; onSkip: () => void }) {
+function Paso3Clientes({ onNext, onSkip }: { onNext: () => void; onSkip: () => void }) {
   const toast = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const [importando, setImportando] = useState(false);
@@ -293,7 +335,7 @@ function Paso3Clientes({ onNext, onSkip }: { onNext: (clienteId?: number) => voi
         throw new Error(err.detail ?? `HTTP ${res.status}`);
       }
       const data = await res.json();
-      setResultado({ importados: data.importados ?? 0, errores: data.errores ?? 0 });
+      setResultado({ importados: data.importados ?? 0, errores: (data.errores ?? []).length });
       toast.success(`${data.importados} clientes importados`);
     } catch (e: any) {
       toast.error(e.message ?? "Error al importar");
@@ -320,9 +362,9 @@ function Paso3Clientes({ onNext, onSkip }: { onNext: (clienteId?: number) => voi
       <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
         <p className="text-sm font-medium text-blue-800 mb-1">Formato del CSV</p>
         <p className="text-xs text-blue-600">
-          Columnas requeridas: <code className="bg-blue-100 px-1 rounded">nombre</code>, <code className="bg-blue-100 px-1 rounded">cuit_cuil</code>, <code className="bg-blue-100 px-1 rounded">condicion_fiscal</code>
+          Columnas requeridas: <code className="bg-blue-100 px-1 rounded">nombre</code>, <code className="bg-blue-100 px-1 rounded">cuit</code>
           <br />
-          Opcionales: <code className="bg-blue-100 px-1 rounded">email</code>, <code className="bg-blue-100 px-1 rounded">telefono</code>, <code className="bg-blue-100 px-1 rounded">honorarios_mensuales</code>
+          Opcionales: <code className="bg-blue-100 px-1 rounded">categoria_fiscal</code>, <code className="bg-blue-100 px-1 rounded">email</code>, <code className="bg-blue-100 px-1 rounded">telefono</code>
         </p>
       </div>
 
@@ -368,17 +410,23 @@ function Paso3Clientes({ onNext, onSkip }: { onNext: (clienteId?: number) => voi
 
 function Paso4Vencimientos({ onNext, onSkip }: { onNext: () => void; onSkip: () => void }) {
   const toast = useToast();
-  const [sugeridos, setSugeridos] = useState<VencimientoSugerido[]>([]);
+  const [grupos, setGrupos] = useState<ClienteSugerido[]>([]);
   const [loading, setLoading] = useState(true);
   const [seleccionados, setSeleccionados] = useState<Set<number>>(new Set());
   const [confirmando, setConfirmando] = useState(false);
-  const [completando, setCompletando] = useState(false);
 
   useEffect(() => {
-    apiFetch<VencimientoSugerido[]>("/onboarding/vencimientos-sugeridos")
+    apiFetch<ClienteSugerido[]>("/onboarding/vencimientos-sugeridos")
       .then(data => {
-        setSugeridos(data);
-        setSeleccionados(new Set(data.filter(v => v.estado === "pendiente_confirmacion").map(v => v.id)));
+        setGrupos(data);
+        // Pre-seleccionar todos los pendientes
+        const ids = new Set<number>();
+        for (const g of data) {
+          for (const s of g.sugerencias) {
+            if (s.estado === "pendiente_confirmacion") ids.add(s.id);
+          }
+        }
+        setSeleccionados(ids);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -393,13 +441,15 @@ function Paso4Vencimientos({ onNext, onSkip }: { onNext: () => void; onSkip: () 
     });
   };
 
+  const totalSugerencias = grupos.reduce((acc, g) => acc + g.sugerencias.length, 0);
+
   const handleConfirmar = async () => {
     setConfirmando(true);
     try {
       if (seleccionados.size > 0) {
-        await apiFetch("/onboarding/confirmar-sugeridos", {
+        await apiFetch("/onboarding/vencimientos-sugeridos/confirmar", {
           method: "POST",
-          body: JSON.stringify({ ids: Array.from(seleccionados) }),
+          body: JSON.stringify(Array.from(seleccionados)),
         });
       }
       await apiFetch("/onboarding/completar-paso", { method: "POST", body: JSON.stringify({ paso: "vencimientos_configurados" }) });
@@ -413,19 +463,14 @@ function Paso4Vencimientos({ onNext, onSkip }: { onNext: () => void; onSkip: () 
 
   if (loading) return <div className="animate-pulse space-y-3">{[...Array(4)].map((_, i) => <div key={i} className="h-16 bg-gray-100 rounded-lg" />)}</div>;
 
-  if (sugeridos.length === 0) {
+  if (grupos.length === 0) {
     return (
       <div className="text-center py-8">
         <CheckCircle2 className="w-10 h-10 text-green-400 mx-auto mb-3" />
-        <p className="text-gray-500 text-sm">No hay vencimientos sugeridos. Podés cargarlos manualmente desde la sección Vencimientos.</p>
+        <p className="text-gray-500 text-sm">No hay vencimientos sugeridos aún. Podés cargarlos manualmente desde la sección Vencimientos.</p>
         <div className="flex justify-center gap-3 mt-6">
           <button onClick={onSkip} className="text-sm text-gray-400 hover:text-gray-600 underline">Saltar</button>
-          <button onClick={async () => {
-            setCompletando(true);
-            await apiFetch("/onboarding/completar-paso", { method: "POST", body: JSON.stringify({ paso: "vencimientos_configurados" }) }).catch(() => {});
-            setCompletando(false);
-            onNext();
-          }} disabled={completando} className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors">
+          <button onClick={handleConfirmar} disabled={confirmando} className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors">
             <ChevronRight className="w-4 h-4" /> Continuar
           </button>
         </div>
@@ -437,22 +482,35 @@ function Paso4Vencimientos({ onNext, onSkip }: { onNext: () => void; onSkip: () 
     <div className="space-y-4">
       <p className="text-sm text-gray-600">
         Seleccioná los vencimientos que querés confirmar. Los no seleccionados serán descartados.
-        <span className="ml-2 font-medium text-blue-600">{seleccionados.size} de {sugeridos.length} seleccionados</span>
+        <span className="ml-2 font-medium text-blue-600">{seleccionados.size} de {totalSugerencias} seleccionados</span>
       </p>
-      <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-        {sugeridos.map(v => (
-          <label key={v.id} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${seleccionados.has(v.id) ? "bg-blue-50 border-blue-200" : "bg-white border-gray-200 hover:bg-gray-50"}`}>
-            <input
-              type="checkbox"
-              checked={seleccionados.has(v.id)}
-              onChange={() => toggleSeleccion(v.id)}
-              className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
-            />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-800 truncate">{v.cliente_nombre}</p>
-              <p className="text-xs text-gray-500">{v.tipo} · {v.descripcion} · {new Date(v.fecha_vencimiento).toLocaleDateString("es-AR")}</p>
+      <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+        {grupos.map(grupo => (
+          <div key={grupo.cliente_id} className="rounded-lg border border-gray-200 overflow-hidden">
+            <div className="px-3 py-2 bg-gray-50 border-b border-gray-100">
+              <p className="text-xs font-semibold text-gray-700">{grupo.cliente_nombre}</p>
+              <p className="text-xs text-gray-400 capitalize">{grupo.categoria_fiscal.replace(/_/g, " ")}</p>
             </div>
-          </label>
+            <div className="divide-y divide-gray-100">
+              {grupo.sugerencias.map(s => (
+                <label key={s.id} className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors ${seleccionados.has(s.id) ? "bg-blue-50" : "bg-white hover:bg-gray-50"}`}>
+                  <input
+                    type="checkbox"
+                    checked={seleccionados.has(s.id)}
+                    onChange={() => toggleSeleccion(s.id)}
+                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-800">{s.tipo_obligacion}</p>
+                    <p className="text-xs text-gray-500">
+                      {s.periodo} · {new Date(s.fecha_vencimiento_estimada + "T00:00:00").toLocaleDateString("es-AR")}
+                      {s.fecha_es_estimada && <span className="ml-1 text-amber-500">(estimada)</span>}
+                    </p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
         ))}
       </div>
       <div className="flex justify-between pt-2">
@@ -557,35 +615,40 @@ export default function OnboardingPage() {
   const [paso, setPaso] = useState(1);
   const [completados, setCompletados] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [terminado, setTerminado] = useState(false);
 
   const cargarEstado = useCallback(async () => {
     try {
       const estado = await apiFetch<EstadoOnboarding>("/onboarding/estado");
-      if (estado.completado || estado.estado_cuenta === "activa") {
-        router.replace("/");
+
+      if (estado.completado) {
+        setTerminado(true);
+        setCompletados(new Set([1, 2, 3, 4, 5]));
+        setLoading(false);
         return;
       }
-      // Reconstruir completados desde pasos del backend
+
       const nuevosCompletados = new Set<number>();
-      if (estado.pasos.estudio_configurado) nuevosCompletados.add(1);
-      if (estado.pasos.equipo_configurado) nuevosCompletados.add(2);
-      if (estado.pasos.clientes_importados) nuevosCompletados.add(3);
-      if (estado.pasos.vencimientos_configurados) nuevosCompletados.add(4);
-      if (estado.pasos.notificaciones_configuradas) nuevosCompletados.add(5);
+      for (const p of estado.pasos) {
+        if (p.completado) nuevosCompletados.add(p.numero);
+      }
       setCompletados(nuevosCompletados);
+
       // Ir al primer paso incompleto
+      let primerIncompleto = 1;
       for (let i = 1; i <= 5; i++) {
         if (!nuevosCompletados.has(i)) {
-          setPaso(i);
+          primerIncompleto = i;
           break;
         }
       }
+      setPaso(primerIncompleto);
     } catch {
-      // Si no hay onboarding, ir al dashboard igual
+      // Si el backend no responde, mostrar paso 1
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, []);
 
   useEffect(() => { cargarEstado(); }, [cargarEstado]);
 
@@ -602,9 +665,9 @@ export default function OnboardingPage() {
     setPaso(num + 1);
   };
 
-  const handleFinish = async () => {
+  const handleFinish = () => {
     marcarCompletado(5);
-    router.replace("/");
+    setTerminado(true);
   };
 
   if (loading) {
@@ -615,7 +678,7 @@ export default function OnboardingPage() {
     );
   }
 
-  const pasoInfo = PASOS[paso - 1];
+  const pasoInfo = PASOS[Math.min(paso, 5) - 1];
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
@@ -623,7 +686,7 @@ export default function OnboardingPage() {
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
           <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-sm">
-            <span className="text-white text-sm font-bold tracking-tight">PO</span>
+            <Rocket className="w-5 h-5 text-white" />
           </div>
           <div>
             <p className="text-xl font-semibold text-gray-900 leading-none">PyME OS</p>
@@ -632,34 +695,42 @@ export default function OnboardingPage() {
         </div>
 
         {/* Barra de progreso */}
-        <div className="flex justify-center mb-8">
-          <BarraProgreso pasoActual={paso} completados={completados} />
-        </div>
+        {!terminado && (
+          <div className="flex justify-center mb-8">
+            <BarraProgreso pasoActual={paso} completados={completados} />
+          </div>
+        )}
 
         {/* Card del paso */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-          <div className="mb-5">
-            <h2 className="text-lg font-bold text-gray-900">
-              Paso {paso}: {pasoInfo.descripcion}
-            </h2>
-            <p className="text-sm text-gray-500 mt-0.5">
-              {paso === 1 && "Completá los datos básicos del estudio contable."}
-              {paso === 2 && "Invitá a los miembros de tu equipo al sistema."}
-              {paso === 3 && "Importá tu cartera de clientes desde un archivo CSV."}
-              {paso === 4 && "Revisá y confirmá los vencimientos sugeridos por el sistema."}
-              {paso === 5 && "Configurá cómo querés recibir alertas y notificaciones."}
-            </p>
-          </div>
+          {terminado ? (
+            <PantallaCompletado onIrDashboard={() => router.push("/")} />
+          ) : (
+            <>
+              <div className="mb-5">
+                <h2 className="text-lg font-bold text-gray-900">
+                  Paso {paso}: {pasoInfo.descripcion}
+                </h2>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  {paso === 1 && "Completá los datos básicos del estudio contable."}
+                  {paso === 2 && "Invitá a los miembros de tu equipo al sistema."}
+                  {paso === 3 && "Importá tu cartera de clientes desde un archivo CSV."}
+                  {paso === 4 && "Revisá y confirmá los vencimientos sugeridos por el sistema."}
+                  {paso === 5 && "Configurá cómo querés recibir alertas y notificaciones."}
+                </p>
+              </div>
 
-          {paso === 1 && <Paso1Estudio onNext={() => irSiguientePaso(1)} />}
-          {paso === 2 && <Paso2Equipo onNext={() => irSiguientePaso(2)} onSkip={() => saltarPaso(2)} />}
-          {paso === 3 && <Paso3Clientes onNext={() => irSiguientePaso(3)} onSkip={() => saltarPaso(3)} />}
-          {paso === 4 && <Paso4Vencimientos onNext={() => irSiguientePaso(4)} onSkip={() => saltarPaso(4)} />}
-          {paso === 5 && <Paso5Notificaciones onFinish={handleFinish} />}
+              {paso === 1 && <Paso1Estudio onNext={() => irSiguientePaso(1)} />}
+              {paso === 2 && <Paso2Equipo onNext={() => irSiguientePaso(2)} onSkip={() => saltarPaso(2)} />}
+              {paso === 3 && <Paso3Clientes onNext={() => irSiguientePaso(3)} onSkip={() => saltarPaso(3)} />}
+              {paso === 4 && <Paso4Vencimientos onNext={() => irSiguientePaso(4)} onSkip={() => saltarPaso(4)} />}
+              {paso === 5 && <Paso5Notificaciones onFinish={handleFinish} />}
+            </>
+          )}
         </div>
 
         {/* Navegación inferior */}
-        {paso > 1 && (
+        {!terminado && paso > 1 && (
           <div className="flex justify-start mt-4">
             <button
               onClick={() => setPaso(p => p - 1)}

@@ -33,7 +33,12 @@ export default function PerfilPage() {
 
   useEffect(() => {
     apiFetch<Perfil>("/config/perfil").then(data => {
-      setForm(prev => ({ ...prev, ...data }));
+      setForm(prev => ({
+        ...prev,
+        ...Object.fromEntries(
+          Object.entries(data).map(([k, v]) => [k, v === null ? (typeof prev[k as keyof Perfil] === "number" ? 0 : "") : v])
+        ),
+      }));
     }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 

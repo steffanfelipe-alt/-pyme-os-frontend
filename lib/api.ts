@@ -317,11 +317,57 @@ export const tareasApi = {
   iniciar: (id: number) =>
     apiFetch<Tarea>(`/api/tareas/${id}/iniciar`, { method: "POST" }),
 
+  pausar: (id: number) =>
+    apiFetch<Tarea>(`/api/tareas/${id}/pausar`, { method: "POST" }),
+
   registrarTiempo: (id: number, horas: number) =>
     apiFetch<Tarea>(`/api/tareas/${id}/tiempo`, {
       method: "POST",
       body: JSON.stringify({ horas }),
     }),
+};
+
+// ─── Onboarding ──────────────────────────────────────────────────────────────
+
+export const onboardingApi = {
+  estado: () => apiFetch<any>("/onboarding/estado"),
+
+  completarPaso: (paso: string) =>
+    apiFetch<{ ok: boolean; paso_completado: string }>("/onboarding/completar-paso", {
+      method: "POST",
+      body: JSON.stringify({ paso }),
+    }),
+
+  siguientesPasos: () => apiFetch<any>("/onboarding/siguientes-pasos"),
+
+  vencimientosSugeridos: () => apiFetch<any[]>("/onboarding/vencimientos-sugeridos"),
+
+  confirmarSugeridos: (ids: number[]) =>
+    apiFetch<{ confirmados: number }>("/onboarding/vencimientos-sugeridos/confirmar", {
+      method: "POST",
+      body: JSON.stringify(ids),
+    }),
+
+  descartarSugerido: (id: number) =>
+    apiFetch<{ ok: boolean }>(`/onboarding/vencimientos-sugeridos/${id}`, { method: "DELETE" }),
+
+  importarEmpleados: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return apiFetch<{ importados: number; saltados: number; errores: string[] }>(
+      "/onboarding/importar-empleados",
+      { method: "POST", body: form, headers: {} }
+    );
+  },
+
+  importarClientes: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return apiFetch<{ importados: number; saltados: number; vencimientos_sugeridos: number; errores: string[] }>(
+      "/onboarding/importar-clientes",
+      { method: "POST", body: form, headers: {} }
+    );
+  },
 };
 
 // ─── Reportes ─────────────────────────────────────────────────────────────────

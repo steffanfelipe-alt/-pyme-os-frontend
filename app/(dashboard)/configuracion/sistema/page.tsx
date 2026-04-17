@@ -5,13 +5,19 @@ import { Cpu, CheckCircle2, XCircle, Loader2, RefreshCw, Bot, Eye, EyeOff } from
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 
+interface ComponenteStatus {
+  ok: boolean;
+  estado: string;
+}
+
 interface EstadoSistema {
-  claude: { ok: boolean; mensaje: string };
-  afip: { ok: boolean; mensaje: string };
-  email: { ok: boolean; mensaje: string };
-  telegram: { ok: boolean; mensaje: string };
-  portal: { ok: boolean; mensaje: string };
-  db: { ok: boolean; mensaje: string };
+  claude_api: ComponenteStatus;
+  afip: ComponenteStatus;
+  email_smtp: ComponenteStatus;
+  telegram: ComponenteStatus;
+  portal_cliente: ComponenteStatus;
+  base_datos: ComponenteStatus;
+  [key: string]: ComponenteStatus | string | boolean | null | undefined;
 }
 
 interface ConfigSistema {
@@ -30,15 +36,17 @@ const MODELOS_CLAUDE = [
 ];
 
 const COMPONENTE_LABELS: Record<string, string> = {
-  claude: "Anthropic Claude (IA)",
+  claude_api: "Anthropic Claude (IA)",
   afip: "AFIP / ARCA",
-  email: "Correo (SMTP/Gmail)",
+  email_smtp: "Correo (SMTP/Gmail)",
   telegram: "Telegram Bot",
-  portal: "Portal del cliente",
-  db: "Base de datos",
+  portal_cliente: "Portal del cliente",
+  base_datos: "Base de datos",
 };
 
-function ComponenteEstado({ nombre, estado }: { nombre: string; estado: { ok: boolean; mensaje: string } }) {
+const COMPONENTES_KEYS = new Set(["claude_api", "afip", "email_smtp", "telegram", "portal_cliente", "base_datos"]);
+
+function ComponenteEstado({ nombre, estado }: { nombre: string; estado: ComponenteStatus }) {
   return (
     <div className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
       <div className="flex items-center gap-2">
@@ -48,7 +56,7 @@ function ComponenteEstado({ nombre, estado }: { nombre: string; estado: { ok: bo
         <span className="text-sm text-gray-700">{COMPONENTE_LABELS[nombre] ?? nombre}</span>
       </div>
       <span className={`text-xs ${estado.ok ? "text-green-600" : "text-red-500"}`}>
-        {estado.mensaje}
+        {estado.estado}
       </span>
     </div>
   );
@@ -197,9 +205,11 @@ export default function SistemaPage() {
         </div>
         {estado ? (
           <div>
-            {Object.entries(estado).map(([nombre, comp]) => (
-              <ComponenteEstado key={nombre} nombre={nombre} estado={comp} />
-            ))}
+            {Object.entries(estado)
+              .filter(([nombre]) => COMPONENTES_KEYS.has(nombre))
+              .map(([nombre, comp]) => (
+                <ComponenteEstado key={nombre} nombre={nombre} estado={comp as ComponenteStatus} />
+              ))}
           </div>
         ) : (
           <p className="text-sm text-gray-400 text-center py-6">Sin datos de estado</p>

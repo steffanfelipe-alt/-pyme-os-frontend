@@ -6,10 +6,11 @@ import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 
 interface ConfigHonorarios {
-  honorario_base_monotributo: number;
-  honorario_base_responsable: number;
-  honorario_base_sociedad: number;
-  honorario_base_empleador: number;
+  honorario_monotributista: number;
+  honorario_responsable_inscripto: number;
+  honorario_sociedad: number;
+  honorario_empleador_adicional: number;
+  honorario_otro: number;
   ajuste_inflacion_activo: boolean;
   ajuste_inflacion_porcentaje: number;
 }
@@ -17,25 +18,27 @@ interface ConfigHonorarios {
 interface ImpactoHonorarios {
   clientes_afectados: number;
   clientes_con_honorario_personalizado: number;
+  [key: string]: number;
 }
 
 const INPUT = "w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors";
 const LABEL = "block text-sm font-medium text-gray-700 mb-1";
 
 const CATEGORIAS = [
-  { key: "honorario_base_monotributo", label: "Monotributista" },
-  { key: "honorario_base_responsable", label: "Responsable Inscripto" },
-  { key: "honorario_base_sociedad", label: "Sociedad / SRL / SA" },
-  { key: "honorario_base_empleador", label: "Con empleados (adicional)" },
+  { key: "honorario_monotributista", label: "Monotributista" },
+  { key: "honorario_responsable_inscripto", label: "Responsable Inscripto" },
+  { key: "honorario_sociedad", label: "Sociedad / SRL / SA" },
+  { key: "honorario_empleador_adicional", label: "Con empleados (adicional)" },
 ] as const;
 
 export default function HonorariosPage() {
   const toast = useToast();
   const [form, setForm] = useState<ConfigHonorarios>({
-    honorario_base_monotributo: 0,
-    honorario_base_responsable: 0,
-    honorario_base_sociedad: 0,
-    honorario_base_empleador: 0,
+    honorario_monotributista: 0,
+    honorario_responsable_inscripto: 0,
+    honorario_sociedad: 0,
+    honorario_empleador_adicional: 0,
+    honorario_otro: 0,
     ajuste_inflacion_activo: false,
     ajuste_inflacion_porcentaje: 0,
   });

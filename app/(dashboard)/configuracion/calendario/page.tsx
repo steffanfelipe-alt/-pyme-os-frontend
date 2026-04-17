@@ -61,12 +61,15 @@ export default function CalendarioPage() {
   const cargar = useCallback(async () => {
     setLoading(true);
     try {
-      const [data, provData] = await Promise.all([
+      const [data, provArr] = await Promise.all([
         apiFetch<ConfigCalendario>("/config/calendario-fiscal"),
-        apiFetch<Record<string, ProvinciaIIBB>>("/config/calendario-fiscal/provincias"),
+        apiFetch<Array<{ provincia: string; dia_vencimiento: number }>>("/config/calendario-fiscal/provincias"),
       ]);
       setForm(prev => ({ ...prev, ...data }));
-      setProvincias(provData);
+      const record = Object.fromEntries(
+        provArr.map(p => [p.provincia, { nombre: p.provincia, dia_vencimiento: p.dia_vencimiento, regimen: "general" }])
+      );
+      setProvincias(record);
     } catch {
       toast.error("Error al cargar configuración del calendario");
     } finally {

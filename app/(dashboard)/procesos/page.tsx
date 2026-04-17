@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   GitBranch, ChevronRight, X, Sparkles, Zap, FileText,
   Bot, Plus, Loader2, AlertCircle, CheckCircle2,
@@ -260,6 +261,7 @@ function ResultadoOptimizarIA({
 
 export default function ProcesosPage() {
   const toast = useToast();
+  const router = useRouter();
   const [procesos, setProcesos] = useState<Proceso[]>([]);
   const [instancias, setInstancias] = useState<InstanciaProceso[]>([]);
   const [loading, setLoading] = useState(true);
@@ -317,8 +319,19 @@ export default function ProcesosPage() {
     setIniciando(true);
     try {
       await procesosApi.crearInstancia(modalProceso.id, Number(clienteId));
+      // Crear tarea vinculada al proceso iniciado
+      try {
+        const { tareasApi } = await import("@/lib/api");
+        await tareasApi.crear({
+          titulo: `${modalProceso.nombre}`,
+          tipo: "tarea" as any,
+          prioridad: "normal" as any,
+          cliente_id: Number(clienteId),
+        } as any);
+      } catch {}
       setModalProceso(null);
       setTab("activas");
+      toast.success("Proceso iniciado y tarea creada");
       await cargar();
     } catch (e: any) {
       toast.error(e.message ?? "Error al iniciar el proceso");
@@ -622,12 +635,15 @@ export default function ProcesosPage() {
                     Detectar automáticas
                   </button>
                   <button
-                    onClick={() => ejecutarAccionIA("generar_n8n", p)}
-                    className="flex items-center gap-1 px-2 py-1.5 bg-indigo-50 text-indigo-700 text-[11px] font-medium rounded-lg hover:bg-indigo-100 transition-colors"
-                    title="Generar flujo n8n"
+                    onClick={() => {
+                      const desc = p.pasos?.map((paso: any, i: number) => `${i + 1}. ${paso.nombre ?? paso.descripcion ?? paso.titulo}`).join("\n") ?? p.descripcion ?? p.nombre;
+                      router.push(`/automatizaciones?nombre=${encodeURIComponent(p.nombre)}&descripcion=${encodeURIComponent(desc)}`);
+                    }}
+                    className="flex items-center gap-1 px-2 py-1.5 bg-purple-50 text-purple-700 text-[11px] font-medium rounded-lg hover:bg-purple-100 transition-colors"
+                    title="Crear automatización Python desde este proceso"
                   >
                     <Bot className="h-3 w-3 shrink-0" />
-                    Generar n8n
+                    Crear automatización
                   </button>
                   <button
                     onClick={() => ejecutarAccionIA("generar_sop", p)}
@@ -809,10 +825,22 @@ export default function ProcesosPage() {
               )}
             </div>
 
-            <div className="px-6 py-4 border-t border-gray-100 shrink-0">
+            <div className="px-6 py-4 border-t border-gray-100 shrink-0 flex gap-2">
+              {modalIA.tipo === "optimizar_ia" && modalIA.resultado && (
+                <button
+                  onClick={() => {
+                    const desc = modalIA.template.pasos?.map((paso: any, i: number) => `${i + 1}. ${paso.nombre ?? paso.titulo ?? paso.descripcion}`).join("\n") ?? modalIA.template.descripcion ?? modalIA.template.nombre;
+                    setModalIA(null);
+                    router.push(`/automatizaciones?nombre=${encodeURIComponent(modalIA.template.nombre)}&descripcion=${encodeURIComponent(desc)}`);
+                  }}
+                  className="flex-1 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors"
+                >
+                  Crear automatización Python
+                </button>
+              )}
               <button
                 onClick={() => setModalIA(null)}
-                className="w-full py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                className="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors"
               >
                 Cerrar
               </button>

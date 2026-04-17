@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { CheckSquare, Play, CheckCheck, Clock, Search, Plus, X } from "lucide-react";
+import { CheckSquare, Play, CheckCheck, Clock, Search, Plus, X, Square } from "lucide-react";
 import { tareasApi, clientesApi, empleadosApi } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import type { Tarea } from "@/types/tarea";
@@ -37,7 +37,6 @@ interface NuevaTareaForm {
   cliente_id: string;
   empleado_id: string;
   fecha_limite: string;
-  horas_estimadas: string;
 }
 
 const FORM_INICIAL: NuevaTareaForm = {
@@ -47,7 +46,6 @@ const FORM_INICIAL: NuevaTareaForm = {
   cliente_id: "",
   empleado_id: "",
   fecha_limite: "",
-  horas_estimadas: "",
 };
 
 export default function TareasPage() {
@@ -60,12 +58,16 @@ export default function TareasPage() {
   const [busqueda, setBusqueda] = useState("");
   const [actionId, setActionId] = useState<number | null>(null);
 
-  // Modal state
+  // Modal nueva tarea
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState<NuevaTareaForm>(FORM_INICIAL);
   const [guardando, setGuardando] = useState(false);
   const [clientes, setClientes] = useState<{ id: number; nombre: string }[]>([]);
   const [empleados, setEmpleados] = useState<{ id: number; nombre: string }[]>([]);
+
+  // Modal confirmación de tiempo al detener
+  const [detenerModal, setDetenerModal] = useState<{ tareaId: number; titulo: string } | null>(null);
+  const [minutosRegistrados, setMinutosRegistrados] = useState("");
 
   const cargar = useCallback(async () => {
     setLoading(true);
@@ -107,7 +109,6 @@ export default function TareasPage() {
         cliente_id: form.cliente_id ? Number(form.cliente_id) : undefined,
         empleado_id: form.empleado_id ? Number(form.empleado_id) : undefined,
         fecha_limite: form.fecha_limite || undefined,
-        horas_estimadas: form.horas_estimadas ? Number(form.horas_estimadas) : undefined,
       } as any);
       toast.success("Tarea creada correctamente");
       setModalOpen(false);
@@ -131,6 +132,25 @@ export default function TareasPage() {
     await tareasApi.completar(id).catch(() => {});
     await cargar();
     setActionId(null);
+  };
+
+  const handleDetener = (tarea: Tarea) => {
+    setMinutosRegistrados("");
+    setDetenerModal({ tareaId: tarea.id, titulo: tarea.titulo });
+  };
+
+  const confirmarDetener = async () => {
+    if (!detenerModal) return;
+    setActionId(detenerModal.tareaId);
+    try {
+      await tareasApi.pausar(detenerModal.tareaId);
+      toast.success("Tarea detenida. Tiempo registrado.");
+    } catch (e: any) {
+      toast.error(e.message ?? "Error al detener la tarea");
+    }
+    setDetenerModal(null);
+    setActionId(null);
+    await cargar();
   };
 
   const filtradas = tareas.filter((t) => {
@@ -337,6 +357,16 @@ export default function TareasPage() {
                         Iniciar
                       </button>
                     )}
+                    {t.estado === "en_progreso" && (
+                      <button
+                        onClick={() => handleDetener(t)}
+                        disabled={isActing}
+                        className="flex items-center gap-1 text-[11px] text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 px-2 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        <Square className="h-3 w-3" />
+                        Detener
+                      </button>
+                    )}
                     {(t.estado === "pendiente" || t.estado === "en_progreso") && (
                       <button
                         onClick={() => handleCompletar(t.id)}
@@ -356,6 +386,48 @@ export default function TareasPage() {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal Confirmar Detener ── */}
+      {detenerModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+            <div className="px-6 py-4 border-b border-gray-100">
+              <h2 className="text-base font-semibold text-gray-900">Registrar tiempo</h2>
+              <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{detenerModal.titulo}</p>
+            </div>
+            <div className="px-6 py-4 space-y-3">
+              <p className="text-sm text-gray-600">¿Cuántos minutos trabajaste en esta sesión?</p>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Minutos trabajados</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={minutosRegistrados}
+                  onChange={(e) => setMinutosRegistrados(e.target.value)}
+                  placeholder="Ej: 45"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                  autoFocus
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 px-6 py-4 border-t border-gray-100">
+              <button
+                onClick={() => setDetenerModal(null)}
+                className="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmarDetener}
+                disabled={!minutosRegistrados || Number(minutosRegistrados) < 1}
+                className="flex-1 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 transition-colors disabled:opacity-50"
+              >
+                Guardar y detener
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -449,31 +521,15 @@ export default function TareasPage() {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                {/* Fecha límite */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Fecha límite</label>
-                  <input
-                    type="date"
-                    value={form.fecha_limite}
-                    onChange={(e) => setForm({ ...form, fecha_limite: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400"
-                  />
-                </div>
-
-                {/* Horas estimadas */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Horas estimadas</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    value={form.horas_estimadas}
-                    onChange={(e) => setForm({ ...form, horas_estimadas: e.target.value })}
-                    placeholder="Ej: 2.5"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400"
-                  />
-                </div>
+              {/* Fecha límite */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Fecha límite</label>
+                <input
+                  type="date"
+                  value={form.fecha_limite}
+                  onChange={(e) => setForm({ ...form, fecha_limite: e.target.value })}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400"
+                />
               </div>
             </div>
 
