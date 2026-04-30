@@ -40,10 +40,14 @@ export async function apiFetch<T>(
     if (qs) url += `?${qs}`;
   }
 
+  // No forzar Content-Type cuando el body es FormData — el navegador lo setea
+  // automáticamente con el boundary correcto para multipart/form-data.
+  const isFormData = fetchOptions.body instanceof FormData;
+
   const res = await fetch(url, {
     ...fetchOptions,
     headers: {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...fetchOptions.headers,
     },
