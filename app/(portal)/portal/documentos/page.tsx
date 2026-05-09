@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Upload, CheckCircle2, FileText, Loader2 } from "lucide-react";
 import { portalApi, isPortalAuthenticated } from "@/lib/portal-api";
@@ -22,6 +22,13 @@ export default function PortalDocumentosPage() {
   const [tipo, setTipo] = useState(TIPOS_DOC[0]);
   const [resultado, setResultado] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isPortalAuthenticated()) {
+      router.replace("/portal/login");
+      return;
+    }
+  }, [router]);
 
   const handleSubir = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

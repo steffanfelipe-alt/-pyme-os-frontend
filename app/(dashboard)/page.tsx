@@ -113,19 +113,19 @@ export default function DashboardPage() {
         />
         <MetricCard
           title="Completadas a tiempo"
-          value={`${bloque_carga.completadas_a_tiempo.total_pct.toFixed(0)}%`}
+          value={`${bloque_carga?.completadas_a_tiempo?.total_pct?.toFixed(0) ?? "—"}%`}
           subtitle="Este mes"
           icon={TrendingUp}
           variant={
-            bloque_carga.completadas_a_tiempo.total_pct >= 80 ? "success" :
-            bloque_carga.completadas_a_tiempo.total_pct >= 60 ? "warning" : "danger"
+            (bloque_carga?.completadas_a_tiempo?.total_pct ?? 0) >= 80 ? "success" :
+            (bloque_carga?.completadas_a_tiempo?.total_pct ?? 0) >= 60 ? "warning" : "danger"
           }
           trend={
-            bloque_carga.completadas_a_tiempo.mes_anterior_pct !== null
+            bloque_carga?.completadas_a_tiempo?.mes_anterior_pct !== null
               ? {
                   value: Math.round(
-                    bloque_carga.completadas_a_tiempo.total_pct -
-                    bloque_carga.completadas_a_tiempo.mes_anterior_pct
+                    (bloque_carga?.completadas_a_tiempo?.total_pct ?? 0) -
+                    (bloque_carga?.completadas_a_tiempo?.mes_anterior_pct ?? 0)
                   ),
                   label: "vs mes anterior",
                 }

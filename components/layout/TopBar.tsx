@@ -113,7 +113,7 @@ export function TopBar() {
 
               <div className="px-4 py-2.5 border-t border-gray-50">
                 <Link
-                  href="/reportes"
+                  href="/alertas"
                   onClick={() => setShowBell(false)}
                   className="text-xs text-blue-600 hover:text-blue-700 font-medium"
                 >

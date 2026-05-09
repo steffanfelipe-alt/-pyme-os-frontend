@@ -78,7 +78,7 @@ export default function LoginPage() {
                 </label>
                 <button
                   type="button"
-                  onClick={() => router.push("/login/reset")}
+                  onClick={() => router.push("/reset-password")}
                   className="text-xs text-info-text hover:text-brand-700"
                 >
                   ¿Olvidaste la contraseña?

@@ -356,7 +356,7 @@ export const onboardingApi = {
     form.append("file", file);
     return apiFetch<{ importados: number; saltados: number; errores: string[] }>(
       "/onboarding/importar-empleados",
-      { method: "POST", body: form, headers: {} }
+      { method: "POST", body: form }
     );
   },
 
@@ -365,7 +365,7 @@ export const onboardingApi = {
     form.append("file", file);
     return apiFetch<{ importados: number; saltados: number; vencimientos_sugeridos: number; errores: string[] }>(
       "/onboarding/importar-clientes",
-      { method: "POST", body: form, headers: {} }
+      { method: "POST", body: form }
     );
   },
 };

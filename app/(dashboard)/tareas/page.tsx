@@ -143,6 +143,10 @@ export default function TareasPage() {
     if (!detenerModal) return;
     setActionId(detenerModal.tareaId);
     try {
+      if (minutosRegistrados && Number(minutosRegistrados) > 0) {
+        const horas = Number(minutosRegistrados) / 60;
+        await tareasApi.registrarTiempo(detenerModal.tareaId, horas);
+      }
       await tareasApi.pausar(detenerModal.tareaId);
       toast.success("Tarea detenida. Tiempo registrado.");
     } catch (e: any) {
