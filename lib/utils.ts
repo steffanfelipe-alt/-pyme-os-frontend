@@ -56,6 +56,7 @@ export function condicionFiscalLabel(cf: string): string {
     responsable_inscripto: "Resp. Inscripto",
     monotributista: "Monotributista",
     exento: "Exento",
+    consumidor_final: "Consumidor Final",
     no_responsable: "No Responsable",
     relacion_de_dependencia: "Rel. de Dependencia",
     autonomos: "Autónomos",
@@ -101,7 +102,8 @@ export function estadoTareaLabel(e: string): string {
 
 export function parseJwt(token: string): Record<string, unknown> {
   try {
-    return JSON.parse(atob(token.split(".")[1]));
+    const base64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(atob(base64));
   } catch {
     return {};
   }

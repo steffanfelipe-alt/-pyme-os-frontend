@@ -4,6 +4,7 @@ export type CondicionFiscal =
   | "responsable_inscripto"
   | "monotributista"
   | "exento"
+  | "consumidor_final"
   | "no_responsable"
   | "relacion_de_dependencia"
   | "autonomos"
