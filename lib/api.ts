@@ -352,21 +352,37 @@ export const onboardingApi = {
     apiFetch<{ ok: boolean }>(`/onboarding/vencimientos-sugeridos/${id}`, { method: "DELETE" }),
 
   importarEmpleados: (file: File) => {
+    const token = getToken();
     const form = new FormData();
     form.append("file", file);
-    return apiFetch<{ importados: number; saltados: number; errores: string[] }>(
-      "/onboarding/importar-empleados",
-      { method: "POST", body: form, headers: {} }
-    );
+    return fetch(`${BASE_URL}/onboarding/importar-empleados`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    }).then(async (res) => {
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: "Error al importar" }));
+        throw new Error(err.detail ?? `HTTP ${res.status}`);
+      }
+      return res.json() as Promise<{ importados: number; saltados: number; errores: string[] }>;
+    });
   },
 
   importarClientes: (file: File) => {
+    const token = getToken();
     const form = new FormData();
     form.append("file", file);
-    return apiFetch<{ importados: number; saltados: number; vencimientos_sugeridos: number; errores: string[] }>(
-      "/onboarding/importar-clientes",
-      { method: "POST", body: form, headers: {} }
-    );
+    return fetch(`${BASE_URL}/onboarding/importar-clientes`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    }).then(async (res) => {
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: "Error al importar" }));
+        throw new Error(err.detail ?? `HTTP ${res.status}`);
+      }
+      return res.json() as Promise<{ importados: number; saltados: number; vencimientos_sugeridos: number; errores: string[] }>;
+    });
   },
 };
 

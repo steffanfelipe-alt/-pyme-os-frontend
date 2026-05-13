@@ -9,10 +9,13 @@ function getPortalToken(): string | null {
 
 export function setPortalToken(token: string): void {
   localStorage.setItem("portal_access_token", token);
+  // Cookie leída por el middleware SSR para proteger rutas /portal/*
+  document.cookie = `portal_access_token=${token}; path=/; samesite=lax`;
 }
 
 export function clearPortalToken(): void {
   localStorage.removeItem("portal_access_token");
+  document.cookie = "portal_access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; samesite=lax";
 }
 
 export function isPortalAuthenticated(): boolean {
