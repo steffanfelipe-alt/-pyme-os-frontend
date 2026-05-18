@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { emailsApi, type EmailEntrante } from "@/lib/api";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { useToast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
 
 // ─── Secciones (basadas en estado / condición) ────────────────────────────────
@@ -54,6 +55,7 @@ export default function EmailsPage() {
   const [editandoRespuesta, setEditandoRespuesta] = useState(false);
   const [accion, setAccion] = useState<string | null>(null);
   const [cambiandoCategoria, setCambiandoCategoria] = useState(false);
+  const toast = useToast();
 
   const seccionActual = SECCIONES.find((s) => s.id === seccion)!;
 
@@ -98,7 +100,7 @@ export default function EmailsPage() {
       await cargar();
       setSeleccionado(null);
     } catch (e: any) {
-      alert(e.message ?? "Error al aprobar");
+      toast.error(e.message ?? "Error al aprobar");
     } finally { setAccion(null); }
   };
 
@@ -110,7 +112,7 @@ export default function EmailsPage() {
       await cargar();
       setSeleccionado(null);
     } catch (e: any) {
-      alert(e.message ?? "Error al enviar");
+      toast.error(e.message ?? "Error al enviar");
     } finally { setAccion(null); }
   };
 
@@ -130,7 +132,7 @@ export default function EmailsPage() {
       if (seleccionado?.id === id) setSeleccionado({ ...seleccionado, categoria });
       setCambiandoCategoria(false);
     } catch (e: any) {
-      alert(e.message ?? "Error al cambiar categoría");
+      toast.error(e.message ?? "Error al cambiar categoría");
     }
   };
 

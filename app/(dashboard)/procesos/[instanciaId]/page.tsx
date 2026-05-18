@@ -9,6 +9,7 @@ import {
 import { procesosApi } from "@/lib/api";
 import type { InstanciaProceso, InstanciaPaso, PasoProceso } from "@/types/proceso";
 import { formatFecha, cn } from "@/lib/utils";
+import { useToast } from "@/hooks/useToast";
 import Link from "next/link";
 
 function formatMinutos(min: number | null | undefined): string {
@@ -28,6 +29,8 @@ export default function InstanciaProcesoPage() {
   const [avanzando, setAvanzando] = useState<number | null>(null);
   const [accionando, setAccionando] = useState<"iniciar" | "completar" | "cancelar" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confirmCancelar, setConfirmCancelar] = useState(false);
+  const toast = useToast();
 
   const cargar = useCallback(async () => {
     try {
@@ -62,7 +65,14 @@ export default function InstanciaProcesoPage() {
 
   const handleAccionInstancia = async (accion: "iniciar" | "completar" | "cancelar") => {
     if (!instancia) return;
-    if (accion === "cancelar" && !confirm("¿Cancelar este proceso?")) return;
+    if (accion === "cancelar") {
+      if (!confirmCancelar) {
+        setConfirmCancelar(true);
+        toast.warning("Hacé click en Cancelar proceso nuevamente para confirmar");
+        return;
+      }
+      setConfirmCancelar(false);
+    }
     setAccionando(accion);
     setError(null);
     try {
