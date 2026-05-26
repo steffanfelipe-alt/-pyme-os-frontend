@@ -26,7 +26,8 @@ async function portalFetch<T>(path: string, options: RequestInit = {}): Promise<
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     headers: {
-      "Content-Type": "application/json",
+      // Let the browser set Content-Type (with boundary) when body is FormData
+      ...(!(options.body instanceof FormData) && { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
@@ -53,25 +54,34 @@ async function portalFetch<T>(path: string, options: RequestInit = {}): Promise<
 
 export interface PortalFicha {
   cliente: {
-    id: number;
     nombre: string;
-    cuit_cuil: string;
-    condicion_fiscal: string;
-    email: string | null;
+    estudio_nombre: string;
+    estudio_logo_url: string | null;
+  };
+  resumen: {
+    vencimientos_proximos: number;
+    notificaciones_no_leidas: number;
+    cobro_estado: string;
   };
   vencimientos_proximos: {
     id: number;
-    tipo: string;
-    descripcion: string;
+    tipo_obligacion: string;
     fecha_vencimiento: string;
-    dias_para_vencer: number;
+    dias_restantes: number;
     estado: string;
   }[];
-  notificaciones_no_leidas: number;
-  abono_estado: {
+  notificaciones_recientes: {
+    id: number;
+    titulo: string;
+    tipo: string | null;
+    leida: boolean;
+    created_at: string | null;
+  }[];
+  cobro_actual: {
     monto: number;
     estado: string;
     periodo: string;
+    fecha_vencimiento: string | null;
   } | null;
 }
 
@@ -86,24 +96,45 @@ export interface PortalNotificacion {
 
 export interface PortalVencimiento {
   id: number;
-  tipo: string;
+  tipo_obligacion: string;
+  tipo_nombre_simple: string;
   descripcion: string;
   fecha_vencimiento: string;
   estado: string;
-  dias_para_vencer: number;
+  dias_restantes: number;
 }
 
-export interface PortalCobro {
-  id: number;
-  monto: number;
-  fecha_cobro: string;
-  estado: string;
-  periodo: string;
+export interface PortalCobrosData {
+  abono: {
+    monto: number;
+    estado: string;
+    descripcion: string;
+  };
+  cobro_actual: {
+    monto: number;
+    estado: string;
+    periodo: string;
+    fecha_vencimiento: string | null;
+  } | null;
+  historial: {
+    periodo: string;
+    monto: number;
+    estado: string;
+    fecha_cobro: string | null;
+  }[];
+  datos_pago: {
+    banco: string | null;
+    cbu_cvu: string | null;
+    alias: string | null;
+    titular: string | null;
+  } | null;
 }
+
+export type PortalCobros = { sin_abono: true } | PortalCobrosData;
 
 export const portalApi = {
   login: (email: string, password: string) =>
-    portalFetch<{ access_token: string; token_type: string }>("/portal/auth/login", {
+    portalFetch<{ access_token: string; token_type: string; cliente_id: number; nombre: string }>("/portal/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     }),
@@ -120,7 +151,7 @@ export const portalApi = {
 
   vencimientos: () => portalFetch<PortalVencimiento[]>("/portal/auth/vencimientos"),
 
-  cobros: () => portalFetch<PortalCobro[]>("/portal/auth/cobros"),
+  cobros: () => portalFetch<PortalCobros>("/portal/auth/cobros"),
 
   subirDocumento: (file: File, tipo: string) => {
     const token = getPortalToken();

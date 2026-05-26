@@ -43,7 +43,8 @@ export async function apiFetch<T>(
   const res = await fetch(url, {
     ...fetchOptions,
     headers: {
-      "Content-Type": "application/json",
+      // Let the browser set Content-Type (with boundary) when body is FormData
+      ...(!(fetchOptions.body instanceof FormData) && { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...fetchOptions.headers,
     },
@@ -356,7 +357,7 @@ export const onboardingApi = {
     form.append("file", file);
     return apiFetch<{ importados: number; saltados: number; errores: string[] }>(
       "/onboarding/importar-empleados",
-      { method: "POST", body: form, headers: {} }
+      { method: "POST", body: form }
     );
   },
 
@@ -365,7 +366,7 @@ export const onboardingApi = {
     form.append("file", file);
     return apiFetch<{ importados: number; saltados: number; vencimientos_sugeridos: number; errores: string[] }>(
       "/onboarding/importar-clientes",
-      { method: "POST", body: form, headers: {} }
+      { method: "POST", body: form }
     );
   },
 };
