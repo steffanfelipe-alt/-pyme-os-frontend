@@ -9,6 +9,7 @@ export interface UserPayload {
   nombre: string;
   rol: "dueno" | "contador" | "administrativo" | "rrhh" | null;
   empleado_id: number | null;
+  studio_id: number | null;
 }
 
 export function useAuth() {
