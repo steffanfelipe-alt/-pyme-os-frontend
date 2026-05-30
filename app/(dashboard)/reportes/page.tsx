@@ -161,14 +161,14 @@ export default function ReportesPage() {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard
                   label="Empleados en riesgo"
-                  value={data.carga?.empleados?.filter((e: any) => e.nivel_carga === "alta").length ?? 0}
+                  value={data.carga?.empleados_en_riesgo ?? 0}
                   icon={Users}
                   variant="warning"
                   sub="Con carga alta"
                 />
                 <StatCard
                   label="Vencimientos en riesgo"
-                  value={data.vencimientos?.vencimientos_alerta ?? 0}
+                  value={data.vencimientos?.en_riesgo ?? 0}
                   icon={AlertTriangle}
                   variant="danger"
                   sub="Próximos 7 días"
@@ -193,17 +193,17 @@ export default function ReportesPage() {
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-semibold text-gray-700">Cobertura de SOPs</h3>
                     <span className="text-sm font-bold text-gray-900">
-                      {Math.round((data.cobertura_sops ?? 0) * 100)}%
+                      {data.cobertura_sops?.porcentaje_cobertura ?? 0}%
                     </span>
                   </div>
                   <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
                     <div
                       className={cn(
                         "h-full rounded-full transition-all",
-                        (data.cobertura_sops ?? 0) >= 0.8 ? "bg-green-500" :
-                        (data.cobertura_sops ?? 0) >= 0.5 ? "bg-amber-400" : "bg-red-400"
+                        (data.cobertura_sops?.porcentaje_cobertura ?? 0) >= 80 ? "bg-green-500" :
+                        (data.cobertura_sops?.porcentaje_cobertura ?? 0) >= 50 ? "bg-amber-400" : "bg-red-400"
                       )}
-                      style={{ width: `${Math.round((data.cobertura_sops ?? 0) * 100)}%` }}
+                      style={{ width: `${data.cobertura_sops?.porcentaje_cobertura ?? 0}%` }}
                     />
                   </div>
                   <p className="text-xs text-gray-400 mt-2">Procesos documentados con SOP</p>
