@@ -6,7 +6,7 @@ import {
   CheckCircle2, ChevronRight, ChevronLeft, Upload,
   Loader2, Check, Rocket, ArrowRight,
 } from "lucide-react";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, onboardingApi } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -321,20 +321,7 @@ function Paso3Clientes({ onNext, onSkip }: { onNext: () => void; onSkip: () => v
     setImportando(true);
     setResultado(null);
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
-      const formData = new FormData();
-      formData.append("file", file);
-      const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-      const res = await fetch(`${BASE}/onboarding/importar-clientes`, {
-        method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: formData,
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: "Error al importar" }));
-        throw new Error(err.detail ?? `HTTP ${res.status}`);
-      }
-      const data = await res.json();
+      const data = await onboardingApi.importarClientes(file);
       setResultado({ importados: data.importados ?? 0, errores: (data.errores ?? []).length });
       toast.success(`${data.importados} clientes importados`);
     } catch (e: any) {

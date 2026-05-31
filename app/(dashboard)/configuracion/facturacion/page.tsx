@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { FileText, Upload, CheckCircle2, AlertCircle, Loader2, Wifi, WifiOff } from "lucide-react";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, facturacionApi } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 
 interface EstadoAfip {
@@ -64,16 +64,7 @@ export default function FacturacionPage() {
       if (certFile) formData.append("certificado", certFile);
       if (keyFile) formData.append("clave_privada", keyFile);
 
-      const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/config/facturacion/credenciales`, {
-        method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: formData,
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: "Error al guardar" }));
-        throw new Error(err.detail ?? `HTTP ${res.status}`);
-      }
+      await facturacionApi.guardarCredenciales(formData);
       toast.success("Configuración AFIP guardada");
       setCertFile(null);
       setKeyFile(null);
