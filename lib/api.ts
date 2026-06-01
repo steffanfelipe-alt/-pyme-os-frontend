@@ -1,6 +1,6 @@
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-// ─── Auth helpers ─────────────────────────────────────────────────────────────
+// ─── Auth helpers ───────────────────────────────────────────────────────────────
 
 function getToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -10,7 +10,8 @@ function getToken(): string | null {
 export function setToken(token: string): void {
   localStorage.setItem("access_token", token);
   // Cookie leída por el middleware SSR (no HttpOnly para que JS pueda limpiarla)
-  document.cookie = `access_token=${token}; path=/; samesite=lax`;
+  // max-age=604800 → 7 días de vida
+  document.cookie = `access_token=${token}; path=/; samesite=lax; max-age=604800`;
 }
 
 export function clearToken(): void {
@@ -43,7 +44,11 @@ export async function apiFetch<T>(
   const res = await fetch(url, {
     ...fetchOptions,
     headers: {
-      "Content-Type": "application/json",
+      // No forzar Content-Type en uploads de FormData — el browser lo setea
+      // automáticamente con el boundary correcto
+      ...(fetchOptions.body instanceof FormData
+        ? {}
+        : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...fetchOptions.headers,
     },
@@ -80,7 +85,7 @@ export async function apiFetch<T>(
   return res.json();
 }
 
-// ─── Auth ─────────────────────────────────────────────────────────────────────
+// ─── Auth ──────────────────────────────────────────────────────────────────────────
 
 export const authApi = {
   login: (email: string, password: string) =>
@@ -122,7 +127,7 @@ export const authApi = {
     }),
 };
 
-// ─── Dashboard ────────────────────────────────────────────────────────────────
+// ─── Dashboard ─────────────────────────────────────────────────────────────────────
 
 import type { DashboardResponse } from "@/types/dashboard";
 
@@ -133,7 +138,7 @@ export const dashboardApi = {
     }),
 };
 
-// ─── Clientes ─────────────────────────────────────────────────────────────────
+// ─── Clientes ─────────────────────────────────────────────────────────────────────
 
 import type {
   ClienteResumen,
@@ -206,7 +211,7 @@ export const clientesApi = {
     }>(`/api/risk/clients/${id}/calculate`, { method: "POST" }),
 };
 
-// ─── Alertas ──────────────────────────────────────────────────────────────────
+// ─── Alertas ─────────────────────────────────────────────────────────────────────
 
 import type { Alerta, ResumenAlertas } from "@/types/alerta";
 
@@ -230,7 +235,7 @@ export const alertasApi = {
     }),
 };
 
-// ─── Vencimientos ─────────────────────────────────────────────────────────────
+// ─── Vencimientos ───────────────────────────────────────────────────────────────
 
 export interface Vencimiento {
   id: number;
@@ -284,7 +289,7 @@ export const vencimientosApi = {
     ),
 };
 
-// ─── Tareas ───────────────────────────────────────────────────────────────────
+// ─── Tareas ─────────────────────────────────────────────────────────────────────────
 
 import type { Tarea, TareaCreate } from "@/types/tarea";
 export type { Tarea, TareaCreate };
@@ -327,36 +332,36 @@ export const tareasApi = {
     }),
 };
 
-// ─── Onboarding ──────────────────────────────────────────────────────────────
+// ─── Onboarding ────────────────────────────────────────────────────────────────────
 
 export const onboardingApi = {
-  estado: () => apiFetch<any>("/onboarding/estado"),
+  estado: () => apiFetch<any>("/api/onboarding/estado"),
 
   completarPaso: (paso: string) =>
-    apiFetch<{ ok: boolean; paso_completado: string }>("/onboarding/completar-paso", {
+    apiFetch<{ ok: boolean; paso_completado: string }>("/api/onboarding/completar-paso", {
       method: "POST",
       body: JSON.stringify({ paso }),
     }),
 
-  siguientesPasos: () => apiFetch<any>("/onboarding/siguientes-pasos"),
+  siguientesPasos: () => apiFetch<any>("/api/onboarding/siguientes-pasos"),
 
-  vencimientosSugeridos: () => apiFetch<any[]>("/onboarding/vencimientos-sugeridos"),
+  vencimientosSugeridos: () => apiFetch<any[]>("/api/onboarding/vencimientos-sugeridos"),
 
   confirmarSugeridos: (ids: number[]) =>
-    apiFetch<{ confirmados: number }>("/onboarding/vencimientos-sugeridos/confirmar", {
+    apiFetch<{ confirmados: number }>("/api/onboarding/vencimientos-sugeridos/confirmar", {
       method: "POST",
       body: JSON.stringify(ids),
     }),
 
   descartarSugerido: (id: number) =>
-    apiFetch<{ ok: boolean }>(`/onboarding/vencimientos-sugeridos/${id}`, { method: "DELETE" }),
+    apiFetch<{ ok: boolean }>(`/api/onboarding/vencimientos-sugeridos/${id}`, { method: "DELETE" }),
 
   importarEmpleados: (file: File) => {
     const form = new FormData();
     form.append("file", file);
     return apiFetch<{ importados: number; saltados: number; errores: string[] }>(
-      "/onboarding/importar-empleados",
-      { method: "POST", body: form, headers: {} }
+      "/api/onboarding/importar-empleados",
+      { method: "POST", body: form }
     );
   },
 
@@ -364,13 +369,13 @@ export const onboardingApi = {
     const form = new FormData();
     form.append("file", file);
     return apiFetch<{ importados: number; saltados: number; vencimientos_sugeridos: number; errores: string[] }>(
-      "/onboarding/importar-clientes",
-      { method: "POST", body: form, headers: {} }
+      "/api/onboarding/importar-clientes",
+      { method: "POST", body: form }
     );
   },
 };
 
-// ─── Reportes ─────────────────────────────────────────────────────────────────
+// ─── Reportes ────────────────────────────────────────────────────────────────────────
 
 export const reportesApi = {
   resumen: (periodo?: string) =>
@@ -400,7 +405,7 @@ export const reportesApi = {
     }),
 };
 
-// ─── Empleados ────────────────────────────────────────────────────────────────
+// ─── Empleados ───────────────────────────────────────────────────────────────────────
 
 export interface Empleado {
   id: number;
@@ -415,7 +420,7 @@ export const empleadosApi = {
   carga: () => apiFetch<any[]>("/api/empleados/carga"),
 };
 
-// ─── Procesos ─────────────────────────────────────────────────────────────────
+// ─── Procesos ────────────────────────────────────────────────────────────────────────
 
 import type { Proceso, PasoProceso, InstanciaProceso, InstanciaPaso } from "@/types/proceso";
 export type { Proceso, PasoProceso, InstanciaProceso, InstanciaPaso };
@@ -500,7 +505,7 @@ export const procesosApi = {
     }),
 };
 
-// ─── Automatizaciones n8n ─────────────────────────────────────────────────────
+// ─── Automatizaciones n8n ─────────────────────────────────────────────────────────────
 
 export const automatizacionesApi = {
   generar: (templateId: number) =>
@@ -520,7 +525,7 @@ export const automatizacionesApi = {
     }),
 };
 
-// ─── Automatizaciones Python Visual ───────────────────────────────────────────
+// ─── Automatizaciones Python Visual ───────────────────────────────────────────────────
 
 export interface AutomatizacionPython {
   id: number;
@@ -608,7 +613,7 @@ export const automatizacionesPythonApi = {
     }),
 };
 
-// ─── Conocimiento ─────────────────────────────────────────────────────────────
+// ─── Conocimiento ────────────────────────────────────────────────────────────────────
 
 export const conocimientoApi = {
   listarSops: (q?: string, area?: string) =>
@@ -629,9 +634,7 @@ export const conocimientoApi = {
     ),
 };
 
-// ─── Agent (AI Chat) ──────────────────────────────────────────────────────────
-
-// ─── Emails ───────────────────────────────────────────────────────────────────
+// ─── Emails ────────────────────────────────────────────────────────────────────────
 
 export interface EmailEntrante {
   id: number;
@@ -719,7 +722,7 @@ export const emailsApi = {
     apiFetch<{ ok: boolean }>("/api/emails/config", { method: "DELETE" }),
 };
 
-// ─── Facturación ──────────────────────────────────────────────────────────────
+// ─── Facturación ───────────────────────────────────────────────────────────────────
 
 export interface Comprobante {
   id: number;
@@ -825,7 +828,7 @@ export const facturacionApi = {
     apiFetch<any[]>("/api/facturacion/pagos", { params: { estado } }),
 };
 
-// ─── Agent (AI Chat) ──────────────────────────────────────────────────────────
+// ─── Agent (AI Chat) ──────────────────────────────────────────────────────────────────
 
 export const agentApi = {
   dashboardChat: (
@@ -864,7 +867,7 @@ export const agentApi = {
     ),
 };
 
-// ─── Configuracion / API Keys ─────────────────────────────────────────────────
+// ─── Configuracion / API Keys ──────────────────────────────────────────────────────────
 
 export interface ApiKeysConfig {
   telegram_bot_token: string | null;
