@@ -1,6 +1,6 @@
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-// ─── Portal token (separate from dashboard JWT) ────────────────────────────────
+// ─── Portal token (separate from dashboard JWT) ──────────────────────────────────
 
 function getPortalToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -9,17 +9,20 @@ function getPortalToken(): string | null {
 
 export function setPortalToken(token: string): void {
   localStorage.setItem("portal_access_token", token);
+  // Cookie leída por el middleware SSR para proteger rutas /portal/*
+  document.cookie = `portal_access_token=${token}; path=/; samesite=lax; max-age=604800`;
 }
 
 export function clearPortalToken(): void {
   localStorage.removeItem("portal_access_token");
+  document.cookie = "portal_access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; samesite=lax";
 }
 
 export function isPortalAuthenticated(): boolean {
   return !!getPortalToken();
 }
 
-// ─── Core fetch ───────────────────────────────────────────────────────────────
+// ─── Core fetch ────────────────────────────────────────────────────────────────────
 
 async function portalFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getPortalToken();
@@ -49,7 +52,7 @@ async function portalFetch<T>(path: string, options: RequestInit = {}): Promise<
   return res.json();
 }
 
-// ─── Portal API ────────────────────────────────────────────────────────────────
+// ─── Portal API ────────────────────────────────────────────────────────────────────
 
 export interface PortalFicha {
   cliente: {

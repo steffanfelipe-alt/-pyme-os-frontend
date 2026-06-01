@@ -18,6 +18,8 @@ export function useAlertas() {
       ]);
       setAlertas(a);
       setResumen(r);
+    } catch (err) {
+      console.error("Error cargando alertas:", err);
     } finally {
       setLoading(false);
     }

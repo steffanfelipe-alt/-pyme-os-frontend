@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { parseJwt } from "@/lib/utils";
+import { clearToken } from "@/lib/api";
 
 export interface UserPayload {
   sub: string;
@@ -17,7 +18,11 @@ export function useAuth() {
   useEffect(() => {
     const token = localStorage.getItem("access_token");
     if (token) {
-      const payload = parseJwt(token) as unknown as UserPayload;
+      const payload = parseJwt(token) as unknown as UserPayload & { exp?: number };
+      if (payload?.exp && payload.exp * 1000 < Date.now()) {
+        clearToken();
+        return;
+      }
       setUser(payload);
     }
   }, []);
