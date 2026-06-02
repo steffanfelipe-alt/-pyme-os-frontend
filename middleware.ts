@@ -11,9 +11,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // El token vive en localStorage (client-side), no en cookies.
-  // Para proteger rutas SSR usamos una cookie "auth_hint" que el cliente setea
-  // junto con el token. Si no existe, redirigir al login.
+  // El token vive en localStorage (client-side) y también se persiste en la
+  // cookie "access_token" para que el middleware SSR pueda verificar autenticación.
+  // Si no existe, redirigir al login.
   const authHint = request.cookies.get("access_token");
 
   if (!authHint) {
