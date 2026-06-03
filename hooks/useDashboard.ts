@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { dashboardApi } from "@/lib/api";
 import type { DashboardResponse } from "@/types/dashboard";
 
@@ -9,8 +9,9 @@ export function useDashboard(contador_id?: number) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const refetch = useCallback(() => {
     setLoading(true);
+    setError(null);
     dashboardApi
       .get(contador_id)
       .then(setData)
@@ -22,5 +23,9 @@ export function useDashboard(contador_id?: number) {
       .finally(() => setLoading(false));
   }, [contador_id]);
 
-  return { data, loading, error };
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
+
+  return { data, loading, error, refetch };
 }

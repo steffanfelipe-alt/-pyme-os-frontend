@@ -38,11 +38,9 @@ export function useAlertas() {
   const marcarVista = useCallback(
     async (id: number) => {
       await alertasApi.marcarVista(id);
-      setAlertas((prev) =>
-        prev.map((a) => (a.id === id ? { ...a, vista: true } : a))
-      );
+      await refetch();
     },
-    []
+    [refetch]
   );
 
   return { alertas, resumen, loading, resolver, marcarVista, refetch };

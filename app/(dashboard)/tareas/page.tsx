@@ -95,7 +95,9 @@ export default function TareasPage() {
       const [c, e] = await Promise.all([clientesApi.listar({ limit: 500 }), empleadosApi.listar()]);
       setClientes(c.map((x: any) => ({ id: x.id, nombre: x.nombre })));
       setEmpleados(e.map((x: any) => ({ id: x.id, nombre: x.nombre })));
-    } catch {}
+    } catch (e: any) {
+      toast.error(e.message ?? "No se pudieron cargar clientes y empleados");
+    }
   };
 
   const handleGuardar = async () => {
@@ -122,14 +124,22 @@ export default function TareasPage() {
 
   const handleIniciar = async (id: number) => {
     setActionId(id);
-    await tareasApi.iniciar(id).catch(() => {});
+    try {
+      await tareasApi.iniciar(id);
+    } catch (e: any) {
+      toast.error(e.message ?? "Error al iniciar la tarea");
+    }
     await cargar();
     setActionId(null);
   };
 
   const handleCompletar = async (id: number) => {
     setActionId(id);
-    await tareasApi.completar(id).catch(() => {});
+    try {
+      await tareasApi.completar(id);
+    } catch (e: any) {
+      toast.error(e.message ?? "Error al completar la tarea");
+    }
     await cargar();
     setActionId(null);
   };
