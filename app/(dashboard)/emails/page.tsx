@@ -8,6 +8,7 @@ import {
 import { emailsApi, type EmailEntrante } from "@/lib/api";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/useToast";
 
 // ─── Secciones (basadas en estado / condición) ────────────────────────────────
 
@@ -45,6 +46,7 @@ const URGENCIA_DOT: Record<string, string> = {
 // ─── Componente principal ────────────────────────────────────────────────────
 
 export default function EmailsPage() {
+  const toast = useToast();
   const [seccion, setSeccion] = useState<SeccionId>("sin_leer");
   const [categoriaFiltro, setCategoriaFiltro] = useState<string | null>(null);
   const [emails, setEmails] = useState<EmailEntrante[]>([]);
@@ -98,7 +100,7 @@ export default function EmailsPage() {
       await cargar();
       setSeleccionado(null);
     } catch (e: any) {
-      alert(e.message ?? "Error al aprobar");
+      toast.error(e.message ?? "Error al aprobar la respuesta");
     } finally { setAccion(null); }
   };
 
@@ -110,7 +112,7 @@ export default function EmailsPage() {
       await cargar();
       setSeleccionado(null);
     } catch (e: any) {
-      alert(e.message ?? "Error al enviar");
+      toast.error(e.message ?? "Error al enviar el email");
     } finally { setAccion(null); }
   };
 
@@ -130,7 +132,7 @@ export default function EmailsPage() {
       if (seleccionado?.id === id) setSeleccionado({ ...seleccionado, categoria });
       setCambiandoCategoria(false);
     } catch (e: any) {
-      alert(e.message ?? "Error al cambiar categoría");
+      toast.error(e.message ?? "Error al cambiar la categoría");
     }
   };
 

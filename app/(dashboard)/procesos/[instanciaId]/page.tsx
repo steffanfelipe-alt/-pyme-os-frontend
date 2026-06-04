@@ -10,6 +10,8 @@ import { procesosApi } from "@/lib/api";
 import type { InstanciaProceso, InstanciaPaso, PasoProceso } from "@/types/proceso";
 import { formatFecha, cn } from "@/lib/utils";
 import Link from "next/link";
+import { useToast } from "@/hooks/useToast";
+import { ConfirmModal } from "@/components/shared/ConfirmModal";
 
 function formatMinutos(min: number | null | undefined): string {
   if (!min) return "—";
@@ -22,12 +24,14 @@ function formatMinutos(min: number | null | undefined): string {
 export default function InstanciaProcesoPage() {
   const { instanciaId } = useParams<{ instanciaId: string }>();
   const router = useRouter();
+  const toast = useToast();
   const [instancia, setInstancia] = useState<InstanciaProceso | null>(null);
   const [templatePasos, setTemplatePasos] = useState<PasoProceso[]>([]);
   const [loading, setLoading] = useState(true);
   const [avanzando, setAvanzando] = useState<number | null>(null);
   const [accionando, setAccionando] = useState<"iniciar" | "completar" | "cancelar" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confirmarCancelar, setConfirmarCancelar] = useState(false);
 
   const cargar = useCallback(async () => {
     try {
@@ -62,7 +66,10 @@ export default function InstanciaProcesoPage() {
 
   const handleAccionInstancia = async (accion: "iniciar" | "completar" | "cancelar") => {
     if (!instancia) return;
-    if (accion === "cancelar" && !confirm("¿Cancelar este proceso?")) return;
+    if (accion === "cancelar") {
+      setConfirmarCancelar(true);
+      return;
+    }
     setAccionando(accion);
     setError(null);
     try {
@@ -71,7 +78,22 @@ export default function InstanciaProcesoPage() {
       else await procesosApi.cancelarInstancia(instancia.id);
       await cargar();
     } catch (e) {
-      setError(e instanceof Error ? e.message : `Error al ${accion}`);
+      toast.error(e instanceof Error ? e.message : `Error al ${accion}`);
+    } finally {
+      setAccionando(null);
+    }
+  };
+
+  const confirmarCancelarInstancia = async () => {
+    if (!instancia) return;
+    setConfirmarCancelar(false);
+    setAccionando("cancelar");
+    setError(null);
+    try {
+      await procesosApi.cancelarInstancia(instancia.id);
+      await cargar();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al cancelar");
     } finally {
       setAccionando(null);
     }
@@ -358,6 +380,17 @@ export default function InstanciaProcesoPage() {
           <p className="text-sm font-semibold text-red-700">Proceso cancelado</p>
         </div>
       )}
+
+      <ConfirmModal
+        open={confirmarCancelar}
+        title="¿Cancelar este proceso?"
+        description="Esta acción no se puede deshacer. El proceso quedará marcado como cancelado."
+        confirmLabel="Sí, cancelar"
+        variant="danger"
+        loading={accionando === "cancelar"}
+        onConfirm={confirmarCancelarInstancia}
+        onCancel={() => setConfirmarCancelar(false)}
+      />
     </div>
   );
 }

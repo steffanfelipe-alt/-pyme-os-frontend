@@ -8,9 +8,11 @@ export function useAlertas() {
   const [alertas, setAlertas] = useState<Alerta[]>([]);
   const [resumen, setResumen] = useState<ResumenAlertas | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const refetch = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const [a, r] = await Promise.all([
         alertasApi.listar(),
@@ -18,6 +20,8 @@ export function useAlertas() {
       ]);
       setAlertas(a);
       setResumen(r);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error al cargar alertas");
     } finally {
       setLoading(false);
     }
@@ -45,5 +49,5 @@ export function useAlertas() {
     []
   );
 
-  return { alertas, resumen, loading, resolver, marcarVista, refetch };
+  return { alertas, resumen, loading, error, resolver, marcarVista, refetch };
 }

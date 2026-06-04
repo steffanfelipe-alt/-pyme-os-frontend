@@ -122,16 +122,26 @@ export default function TareasPage() {
 
   const handleIniciar = async (id: number) => {
     setActionId(id);
-    await tareasApi.iniciar(id).catch(() => {});
-    await cargar();
-    setActionId(null);
+    try {
+      await tareasApi.iniciar(id);
+      await cargar();
+    } catch (e: any) {
+      toast.error(e.message ?? "Error al iniciar la tarea");
+    } finally {
+      setActionId(null);
+    }
   };
 
   const handleCompletar = async (id: number) => {
     setActionId(id);
-    await tareasApi.completar(id).catch(() => {});
-    await cargar();
-    setActionId(null);
+    try {
+      await tareasApi.completar(id);
+      await cargar();
+    } catch (e: any) {
+      toast.error(e.message ?? "Error al completar la tarea");
+    } finally {
+      setActionId(null);
+    }
   };
 
   const handleDetener = (tarea: Tarea) => {

@@ -17,16 +17,18 @@ import { alertasApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 export default function DashboardPage() {
-  const { data, loading, error } = useDashboard();
-  const { resumen } = useAlertas();
+  const { data, loading, error, refetch: refetchDashboard } = useDashboard();
+  const { resumen, refetch: refetchAlertas } = useAlertas();
   const [generating, setGenerating] = useState(false);
   const router = useRouter();
 
   const handleGenerarAlertas = async () => {
     setGenerating(true);
-    await alertasApi.generar().catch(() => {});
+    try {
+      await alertasApi.generar();
+    } catch {}
     setGenerating(false);
-    window.location.reload();
+    await Promise.all([refetchDashboard(), refetchAlertas()]);
   };
 
   if (loading) {
