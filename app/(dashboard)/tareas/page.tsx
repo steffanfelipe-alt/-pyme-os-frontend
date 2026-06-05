@@ -65,9 +65,8 @@ export default function TareasPage() {
   const [clientes, setClientes] = useState<{ id: number; nombre: string }[]>([]);
   const [empleados, setEmpleados] = useState<{ id: number; nombre: string }[]>([]);
 
-  // Modal confirmación de tiempo al detener
+  // Modal confirmación de detener
   const [detenerModal, setDetenerModal] = useState<{ tareaId: number; titulo: string } | null>(null);
-  const [minutosRegistrados, setMinutosRegistrados] = useState("");
 
   const cargar = useCallback(async () => {
     setLoading(true);
@@ -122,20 +121,27 @@ export default function TareasPage() {
 
   const handleIniciar = async (id: number) => {
     setActionId(id);
-    await tareasApi.iniciar(id).catch(() => {});
+    try {
+      await tareasApi.iniciar(id);
+    } catch (e: any) {
+      toast.error(e.message ?? "Error al iniciar la tarea");
+    }
     await cargar();
     setActionId(null);
   };
 
   const handleCompletar = async (id: number) => {
     setActionId(id);
-    await tareasApi.completar(id).catch(() => {});
+    try {
+      await tareasApi.completar(id);
+    } catch (e: any) {
+      toast.error(e.message ?? "Error al completar la tarea");
+    }
     await cargar();
     setActionId(null);
   };
 
   const handleDetener = (tarea: Tarea) => {
-    setMinutosRegistrados("");
     setDetenerModal({ tareaId: tarea.id, titulo: tarea.titulo });
   };
 
@@ -395,23 +401,11 @@ export default function TareasPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
             <div className="px-6 py-4 border-b border-gray-100">
-              <h2 className="text-base font-semibold text-gray-900">Registrar tiempo</h2>
+              <h2 className="text-base font-semibold text-gray-900">Detener tarea</h2>
               <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{detenerModal.titulo}</p>
             </div>
-            <div className="px-6 py-4 space-y-3">
-              <p className="text-sm text-gray-600">¿Cuántos minutos trabajaste en esta sesión?</p>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Minutos trabajados</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={minutosRegistrados}
-                  onChange={(e) => setMinutosRegistrados(e.target.value)}
-                  placeholder="Ej: 45"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
-                  autoFocus
-                />
-              </div>
+            <div className="px-6 py-4">
+              <p className="text-sm text-gray-600">El tiempo de esta sesión se registrará automáticamente.</p>
             </div>
             <div className="flex gap-3 px-6 py-4 border-t border-gray-100">
               <button
@@ -422,10 +416,9 @@ export default function TareasPage() {
               </button>
               <button
                 onClick={confirmarDetener}
-                disabled={!minutosRegistrados || Number(minutosRegistrados) < 1}
                 className="flex-1 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 transition-colors disabled:opacity-50"
               >
-                Guardar y detener
+                Detener
               </button>
             </div>
           </div>
