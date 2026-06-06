@@ -122,14 +122,22 @@ export default function TareasPage() {
 
   const handleIniciar = async (id: number) => {
     setActionId(id);
-    await tareasApi.iniciar(id).catch(() => {});
+    try {
+      await tareasApi.iniciar(id);
+    } catch (e: any) {
+      toast.error(e.message ?? "Error al iniciar la tarea");
+    }
     await cargar();
     setActionId(null);
   };
 
   const handleCompletar = async (id: number) => {
     setActionId(id);
-    await tareasApi.completar(id).catch(() => {});
+    try {
+      await tareasApi.completar(id);
+    } catch (e: any) {
+      toast.error(e.message ?? "Error al completar la tarea");
+    }
     await cargar();
     setActionId(null);
   };
@@ -144,6 +152,10 @@ export default function TareasPage() {
     setActionId(detenerModal.tareaId);
     try {
       await tareasApi.pausar(detenerModal.tareaId);
+      const minutos = Number(minutosRegistrados);
+      if (minutos > 0) {
+        await tareasApi.registrarTiempo(detenerModal.tareaId, minutos / 60);
+      }
       toast.success("Tarea detenida. Tiempo registrado.");
     } catch (e: any) {
       toast.error(e.message ?? "Error al detener la tarea");
