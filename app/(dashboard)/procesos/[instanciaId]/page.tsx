@@ -24,10 +24,12 @@ export default function InstanciaProcesoPage() {
   const router = useRouter();
   const [instancia, setInstancia] = useState<InstanciaProceso | null>(null);
   const [templatePasos, setTemplatePasos] = useState<PasoProceso[]>([]);
+  const [templateNombre, setTemplateNombre] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [avanzando, setAvanzando] = useState<number | null>(null);
   const [accionando, setAccionando] = useState<"iniciar" | "completar" | "cancelar" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [cancelarModal, setCancelarModal] = useState(false);
 
   const cargar = useCallback(async () => {
     try {
@@ -36,6 +38,7 @@ export default function InstanciaProcesoPage() {
       try {
         const template = await procesosApi.obtener(data.template_id);
         setTemplatePasos(template.pasos ?? []);
+        setTemplateNombre(template.nombre ?? template.titulo ?? null);
       } catch {}
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error al cargar instancia");
@@ -62,7 +65,7 @@ export default function InstanciaProcesoPage() {
 
   const handleAccionInstancia = async (accion: "iniciar" | "completar" | "cancelar") => {
     if (!instancia) return;
-    if (accion === "cancelar" && !confirm("¿Cancelar este proceso?")) return;
+    if (accion === "cancelar") { setCancelarModal(true); return; }
     setAccionando(accion);
     setError(null);
     try {
@@ -127,11 +130,7 @@ export default function InstanciaProcesoPage() {
         </button>
         <div className="flex-1 min-w-0">
           <h1 className="text-xl font-semibold text-gray-900">
-            {templatePasos.length > 0
-              ? templatePasos[0]?.titulo
-                ? `Proceso: ${instancia.template_id}`
-                : `Proceso #${instancia.template_id}`
-              : `Proceso #${instancia.template_id}`}
+            {templateNombre ?? `Proceso #${instancia.template_id}`}
           </h1>
           <div className="flex items-center gap-3 mt-1 text-sm text-gray-400 flex-wrap">
             {instancia.cliente_id && (
@@ -356,6 +355,48 @@ export default function InstanciaProcesoPage() {
         <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
           <X className="h-6 w-6 text-red-400 shrink-0" />
           <p className="text-sm font-semibold text-red-700">Proceso cancelado</p>
+        </div>
+      )}
+
+      {/* ── Modal confirmación cancelar ── */}
+      {cancelarModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+            <div className="px-6 py-4 border-b border-gray-100">
+              <h2 className="text-base font-semibold text-gray-900">Cancelar proceso</h2>
+            </div>
+            <div className="px-6 py-4">
+              <p className="text-sm text-gray-600">
+                ¿Estás seguro que querés cancelar este proceso? Esta acción no se puede deshacer.
+              </p>
+            </div>
+            <div className="flex gap-3 px-6 py-4 border-t border-gray-100">
+              <button
+                onClick={() => setCancelarModal(false)}
+                className="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                No, continuar
+              </button>
+              <button
+                onClick={async () => {
+                  setCancelarModal(false);
+                  setAccionando("cancelar");
+                  setError(null);
+                  try {
+                    await procesosApi.cancelarInstancia(instancia!.id);
+                    await cargar();
+                  } catch (e) {
+                    setError(e instanceof Error ? e.message : "Error al cancelar");
+                  } finally {
+                    setAccionando(null);
+                  }
+                }}
+                className="flex-1 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
+              >
+                Sí, cancelar
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

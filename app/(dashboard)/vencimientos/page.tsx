@@ -41,7 +41,12 @@ export default function VencimientosPage() {
 
   const handleCumplir = async (id: number) => {
     setCumpliendo(id);
-    await vencimientosApi.cumplir(id).catch(() => {});
+    try {
+      await vencimientosApi.cumplir(id);
+      toast.success("Vencimiento marcado como cumplido");
+    } catch (e: any) {
+      toast.error(e.message ?? "Error al marcar como cumplido");
+    }
     await cargar();
     setCumpliendo(null);
   };
