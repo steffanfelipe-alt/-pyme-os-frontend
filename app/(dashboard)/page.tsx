@@ -17,7 +17,7 @@ import { alertasApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 export default function DashboardPage() {
-  const { data, loading, error } = useDashboard();
+  const { data, loading, error, refetch } = useDashboard();
   const { resumen } = useAlertas();
   const [generating, setGenerating] = useState(false);
   const router = useRouter();
@@ -26,7 +26,7 @@ export default function DashboardPage() {
     setGenerating(true);
     await alertasApi.generar().catch(() => {});
     setGenerating(false);
-    window.location.reload();
+    refetch();
   };
 
   if (loading) {
@@ -49,7 +49,7 @@ export default function DashboardPage() {
         <AlertTriangle className="h-10 w-10 text-red-400 mb-3" />
         <p className="text-gray-700 font-medium">No se pudo cargar el dashboard</p>
         <p className="text-sm text-gray-400 mt-1">{error}</p>
-        <button onClick={() => window.location.reload()} className="mt-4 text-sm text-blue-600 hover:underline">
+        <button onClick={refetch} className="mt-4 text-sm text-blue-600 hover:underline">
           Reintentar
         </button>
       </div>

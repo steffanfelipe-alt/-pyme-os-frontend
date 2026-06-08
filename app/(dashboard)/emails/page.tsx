@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { emailsApi, type EmailEntrante } from "@/lib/api";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { useToast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
 
 // ─── Secciones (basadas en estado / condición) ────────────────────────────────
@@ -45,6 +46,7 @@ const URGENCIA_DOT: Record<string, string> = {
 // ─── Componente principal ────────────────────────────────────────────────────
 
 export default function EmailsPage() {
+  const toast = useToast();
   const [seccion, setSeccion] = useState<SeccionId>("sin_leer");
   const [categoriaFiltro, setCategoriaFiltro] = useState<string | null>(null);
   const [emails, setEmails] = useState<EmailEntrante[]>([]);
@@ -60,10 +62,10 @@ export default function EmailsPage() {
   const cargar = useCallback(async () => {
     setLoading(true);
     try {
-      const params: Record<string, any> = { limit: 100 };
-      const apiParam = seccionActual.apiParam as any;
-      if (apiParam.estado) params.estado = apiParam.estado;
-      if (apiParam.pendiente_aprobacion) params.pendiente_aprobacion = true;
+      const apiParam = seccionActual.apiParam;
+      const params: { limit: number; estado?: string; pendiente_aprobacion?: boolean; categoria?: string } = { limit: 100 };
+      if ("estado" in apiParam) params.estado = apiParam.estado;
+      if ("pendiente_aprobacion" in apiParam) params.pendiente_aprobacion = true;
       if (categoriaFiltro) params.categoria = categoriaFiltro;
       const data = await emailsApi.listar(params);
       setEmails(data);
@@ -87,6 +89,7 @@ export default function EmailsPage() {
       setEditandoRespuesta(false);
     } catch {
       setSeleccionado(email);
+      toast.warning("No se pudo cargar el detalle completo del email");
     }
   };
 
@@ -97,8 +100,8 @@ export default function EmailsPage() {
       await emailsApi.aprobarRespuesta(seleccionado.id);
       await cargar();
       setSeleccionado(null);
-    } catch (e: any) {
-      alert(e.message ?? "Error al aprobar");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al aprobar la respuesta");
     } finally { setAccion(null); }
   };
 
@@ -109,8 +112,8 @@ export default function EmailsPage() {
       await emailsApi.editarYEnviar(seleccionado.id, respuestaTexto);
       await cargar();
       setSeleccionado(null);
-    } catch (e: any) {
-      alert(e.message ?? "Error al enviar");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al enviar la respuesta");
     } finally { setAccion(null); }
   };
 
@@ -120,6 +123,8 @@ export default function EmailsPage() {
       await emailsApi.archivar(id);
       await cargar();
       setSeleccionado(null);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al archivar el email");
     } finally { setAccion(null); }
   };
 
@@ -129,8 +134,8 @@ export default function EmailsPage() {
       setEmails((prev) => prev.map((e) => e.id === id ? { ...e, categoria } : e));
       if (seleccionado?.id === id) setSeleccionado({ ...seleccionado, categoria });
       setCambiandoCategoria(false);
-    } catch (e: any) {
-      alert(e.message ?? "Error al cambiar categoría");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al cambiar la categoría");
     }
   };
 

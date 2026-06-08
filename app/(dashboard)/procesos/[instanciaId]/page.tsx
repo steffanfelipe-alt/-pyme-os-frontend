@@ -8,6 +8,8 @@ import {
 } from "lucide-react";
 import { procesosApi } from "@/lib/api";
 import type { InstanciaProceso, InstanciaPaso, PasoProceso } from "@/types/proceso";
+import { ConfirmModal } from "@/components/shared/ConfirmModal";
+import { useToast } from "@/hooks/useToast";
 import { formatFecha, cn } from "@/lib/utils";
 import Link from "next/link";
 
@@ -22,11 +24,14 @@ function formatMinutos(min: number | null | undefined): string {
 export default function InstanciaProcesoPage() {
   const { instanciaId } = useParams<{ instanciaId: string }>();
   const router = useRouter();
+  const toast = useToast();
   const [instancia, setInstancia] = useState<InstanciaProceso | null>(null);
   const [templatePasos, setTemplatePasos] = useState<PasoProceso[]>([]);
+  const [templateNombre, setTemplateNombre] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [avanzando, setAvanzando] = useState<number | null>(null);
   const [accionando, setAccionando] = useState<"iniciar" | "completar" | "cancelar" | null>(null);
+  const [confirmCancelar, setConfirmCancelar] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const cargar = useCallback(async () => {
@@ -36,7 +41,10 @@ export default function InstanciaProcesoPage() {
       try {
         const template = await procesosApi.obtener(data.template_id);
         setTemplatePasos(template.pasos ?? []);
-      } catch {}
+        setTemplateNombre(template.nombre ?? "");
+      } catch {
+        toast.warning("No se pudo cargar los detalles del template");
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error al cargar instancia");
     } finally {
@@ -62,7 +70,6 @@ export default function InstanciaProcesoPage() {
 
   const handleAccionInstancia = async (accion: "iniciar" | "completar" | "cancelar") => {
     if (!instancia) return;
-    if (accion === "cancelar" && !confirm("¿Cancelar este proceso?")) return;
     setAccionando(accion);
     setError(null);
     try {
@@ -107,7 +114,7 @@ export default function InstanciaProcesoPage() {
   const completados = pasos.filter((p) => p.estado === "completado").length;
   const total = pasos.length;
   const pct = total > 0 ? Math.round((completados / total) * 100) : (instancia.progreso_pct ?? 0);
-  const tiempoReal = (instancia as any).tiempo_real_minutos as number | null | undefined;
+  const tiempoReal = instancia.tiempo_real_minutos;
 
   const templatePorOrden = Object.fromEntries(templatePasos.map((p) => [p.orden, p]));
 
@@ -127,17 +134,13 @@ export default function InstanciaProcesoPage() {
         </button>
         <div className="flex-1 min-w-0">
           <h1 className="text-xl font-semibold text-gray-900">
-            {templatePasos.length > 0
-              ? templatePasos[0]?.titulo
-                ? `Proceso: ${instancia.template_id}`
-                : `Proceso #${instancia.template_id}`
-              : `Proceso #${instancia.template_id}`}
+            {instancia.proceso_nombre || templateNombre || `Proceso #${instancia.template_id}`}
           </h1>
           <div className="flex items-center gap-3 mt-1 text-sm text-gray-400 flex-wrap">
             {instancia.cliente_id && (
               <>
                 <Link href={`/clientes/${instancia.cliente_id}`} className="hover:text-blue-600 transition-colors">
-                  {(instancia as any).cliente_nombre ?? `Cliente #${instancia.cliente_id}`}
+                  {instancia.cliente_nombre ?? `Cliente #${instancia.cliente_id}`}
                 </Link>
                 <span className="text-gray-200">·</span>
               </>
@@ -182,7 +185,7 @@ export default function InstanciaProcesoPage() {
             </button>
           )}
           <button
-            onClick={() => handleAccionInstancia("cancelar")}
+            onClick={() => setConfirmCancelar(true)}
             disabled={!!accionando}
             className="flex items-center gap-1.5 px-4 py-2 border border-red-200 text-red-600 text-sm font-medium rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
           >
@@ -191,6 +194,18 @@ export default function InstanciaProcesoPage() {
           </button>
         </div>
       )}
+
+      <ConfirmModal
+        open={confirmCancelar}
+        title="¿Cancelar este proceso?"
+        description="Esta acción no se puede deshacer. El proceso quedará marcado como cancelado."
+        confirmLabel="Sí, cancelar proceso"
+        cancelLabel="Volver"
+        variant="danger"
+        loading={accionando === "cancelar"}
+        onConfirm={() => { setConfirmCancelar(false); handleAccionInstancia("cancelar"); }}
+        onCancel={() => setConfirmCancelar(false)}
+      />
 
       {/* Barra de progreso + tiempo */}
       <div className="bg-white rounded-xl border border-gray-100 p-5">
@@ -259,7 +274,7 @@ export default function InstanciaProcesoPage() {
               const tPaso = templatePorOrden[paso.orden];
               const titulo = tPaso?.titulo ?? `Paso ${paso.orden}`;
               const descripcion = paso.guia_sop ?? tPaso?.descripcion ?? null;
-              const tiempoPaso = (paso as any).tiempo_real_minutos as number | null | undefined;
+              const tiempoPaso = paso.tiempo_real_minutos;
 
               return (
                 <div

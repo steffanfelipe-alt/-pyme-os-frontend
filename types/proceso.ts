@@ -51,9 +51,9 @@ export interface InstanciaProceso {
   progreso_pct: number;
   fecha_inicio: string | null;
   fecha_fin: string | null;
+  tiempo_real_minutos?: number | null;
   pasos: InstanciaPaso[];
   sop_vinculado?: any;
-  // Computed helpers (not from backend — derive from pasos)
   proceso_nombre?: string;
   cliente_nombre?: string;
   pasos_completados?: number;
